@@ -4,7 +4,6 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -132,11 +131,6 @@ public class JavaActionImpl extends ActionImpl implements JavaAction {
             // System.out.println("Final text [ " + text + " ]");
             return text;
         }
-    }
-    
-    @Override
-    public void apply(File inputFile, File outputFile) throws JakartaTransformException {
-        throw new UnsupportedOperationException();       
     }
 
 	@Override
