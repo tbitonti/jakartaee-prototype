@@ -103,7 +103,7 @@ public class ManifestActionImpl extends ActionImpl implements ManifestAction {
 
 	@Override
 	public String getAcceptExtension() {
-		return ( getIsManifest() ? "MANIFEST.MF" : ".MF" );
+		return ( getIsManifest() ? "manifest.mf" : ".mf" );
 	}
 
 	//
