@@ -9,6 +9,7 @@ import java.util.ListIterator;
 import com.ibm.ws.jakarta.transformer.JakartaTransformException;
 import com.ibm.ws.jakarta.transformer.action.ActionType;
 import com.ibm.ws.jakarta.transformer.action.ClassAction;
+import com.ibm.ws.jakarta.transformer.action.SignatureRule;
 import com.ibm.ws.jakarta.transformer.action.SignatureRule.SignatureType;
 import com.ibm.ws.jakarta.transformer.util.ByteData;
 import com.ibm.ws.jakarta.transformer.util.FileUtils;
@@ -975,11 +976,11 @@ public class ClassActionImpl extends ActionImpl implements ClassAction {
 						transformCase = null; // Unused
 						outputUtf8 = null;
 					} else {
-						transformCase = "constant";
-						outputUtf8 = transformConstantAsDescriptor(inputUtf8);
+						transformCase = "constant";  // dotted package format
+						outputUtf8 = transformConstantAsDescriptor(inputUtf8, SignatureRule.ALLOW_SIMPLE_SUBSTITUTION);
 						if ( outputUtf8 == null ) {
-							transformCase = "resource";
-							outputUtf8 = transformConstantAsBinaryType(inputUtf8);
+							transformCase = "resource";  // url format (slashes)
+							outputUtf8 = transformConstantAsBinaryType(inputUtf8, SignatureRule.ALLOW_SIMPLE_SUBSTITUTION);
 						}
 					}
 
@@ -996,7 +997,12 @@ public class ClassActionImpl extends ActionImpl implements ClassAction {
 				case ConstantPool.CONSTANT_String: {
 					StringInfo stringInfo = constants.entry(constantNo);
 					String inputString = constants.utf8(stringInfo.string_index);
-					String outputString = transformConstantAsDescriptor(inputString);
+					transformCase = "constant";   // dotted package format
+					String outputString = transformConstantAsDescriptor(inputString, SignatureRule.ALLOW_SIMPLE_SUBSTITUTION);
+                    if ( outputString == null ) {
+                        transformCase = "String";   // url format (slashes)
+                        outputString = transformConstantAsBinaryType(inputString, SignatureRule.ALLOW_SIMPLE_SUBSTITUTION);
+                    }
 					if ( outputString != null ) {
 						constants.entry(constantNo, new StringInfo( constants.utf8Info(outputString) ) );
 						modifiedConstants++;

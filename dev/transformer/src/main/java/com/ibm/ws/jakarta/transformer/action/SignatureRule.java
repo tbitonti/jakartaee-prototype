@@ -31,6 +31,9 @@ public interface SignatureRule {
 		CLASS, FIELD, METHOD
 	}
 
+	public static final boolean ALLOW_SIMPLE_SUBSTITUTION = true;
+	public static final boolean NO_SIMPLE_SUBSTITUTION = false;
+	
 	/**
 	 * Replace a single package according to the package rename rules.
 	 * 
@@ -60,14 +63,16 @@ public interface SignatureRule {
 	 * Replace all embedded packages of specified text with replacement
 	 * packages.
 	 *
-	 * @param embeddingText Text embedding zero, one, or more package names.
-	 *
+	 * @param text String embedding zero, one, or more package names.
+	 * @param packageRenames map of names and replacement values
 	 * @return The text with all embedded package names replaced.  Null if no
 	 *     replacements were performed.
 	 */
-	String replaceEmbeddedPackages(String embeddingText);
+	String replacePackages(String text);
+	String replacePackages(String text, Map<String, String> packageRenames);
 
 	String transformConstantAsBinaryType(String inputConstant);
+	String transformConstantAsBinaryType(String inputConstant, boolean allowSimpleSubstitution);
 
 	/**
 	 * Modify a fully qualified type name according to the package rename table.
@@ -81,8 +86,10 @@ public interface SignatureRule {
 	String transformBinaryType(String inputName);
 
 	String transformConstantAsDescriptor(String inputConstant);
-
+	String transformConstantAsDescriptor(String inputConstant, boolean allowSimpleSubstitution);
+	
 	String transformDescriptor(String inputDescriptor);
+	String transformDescriptor(String inputDescriptor, boolean allowSimpleSubstitution);
 
 	/**
 	 * Transform a class, field, or method signature.

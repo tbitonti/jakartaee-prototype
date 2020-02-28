@@ -51,8 +51,8 @@ public class SignatureRuleImpl implements SignatureRule {
 			useBinaryRenames.put(initialBinaryName, finalBinaryName);
 		}
 
-		this.packageRenames = useRenames;
-		this.binaryPackageRenames = useBinaryRenames;
+		this.dottedPackageRenames = useRenames;
+		this.slashedPackageRenames = useBinaryRenames;
 
 		Map<String, String> useVersions;
 		if (versions != null ) {
@@ -131,12 +131,12 @@ public class SignatureRuleImpl implements SignatureRule {
 	// Direct form  :  "javax.servlet"
 	// Binary form:    "javax/servlet"
 
-	protected final Map<String, String> packageRenames;
-	protected final Map<String, String> binaryPackageRenames;
+	protected final Map<String, String> dottedPackageRenames;
+	protected final Map<String, String> slashedPackageRenames;
 
 	@Override
 	public Map<String, String> getPackageRenames() {
-		return packageRenames;
+		return dottedPackageRenames;
 	}
 
 	//
@@ -160,7 +160,7 @@ public class SignatureRuleImpl implements SignatureRule {
 	 */
 	@Override
 	public String replacePackage(String initialName) {
-		return packageRenames.getOrDefault(initialName, null);
+		return dottedPackageRenames.getOrDefault(initialName, null);
 	}
 
 	/**
@@ -176,25 +176,30 @@ public class SignatureRuleImpl implements SignatureRule {
 	 */
 	@Override
 	public String replaceBinaryPackage(String initialName) {
-		String finalName = binaryPackageRenames.getOrDefault(initialName, null);
+		String finalName = slashedPackageRenames.getOrDefault(initialName, null);
 		// System.out.println("Initial binary [ " + initialName + " ] Final [ " + finalName + " ]");
 		return finalName;
 	}
-
+	
+	@Override
+	public String replacePackages(String text) {
+	    return replacePackages(text, this.dottedPackageRenames);
+	}
+	   
 	/**
 	 * Replace all embedded packages of specified text with replacement
 	 * packages.
 	 *
-	 * @param embeddingText Text embedding zero, one, or more package names.
-	 *
+	 * @param text String embedding zero, one, or more package names.
+	 * @param packageRenames map of names and replacement values
 	 * @return The text with all embedded package names replaced.  Null if no
 	 *     replacements were performed.
 	 */
 	@Override
-	public String replaceEmbeddedPackages(String embeddingText) {
-		// System.out.println("Initial text [ " + embeddingText + " ]");
+	public String replacePackages(String text, Map<String, String> packageRenames ) {
+		// System.out.println("Initial text [ " + text + " ]");
 
-		String initialText = embeddingText;
+		String initialText = text;
 
 		for ( Map.Entry<String, String> renameEntry : packageRenames.entrySet() ) {
 			String key = renameEntry.getKey();
@@ -202,35 +207,40 @@ public class SignatureRuleImpl implements SignatureRule {
 
 			// System.out.println("Next target [ " + key + " ]");
 
-			int textLimit = embeddingText.length() - keyLen;
+			int textLimit = text.length() - keyLen;
 
 			int lastMatchEnd = 0;
 			while ( lastMatchEnd <= textLimit ) {
-				int nextMatchStart = embeddingText.indexOf(key, lastMatchEnd);
-				if ( nextMatchStart == -1 ) {
+				int matchStart = text.indexOf(key, lastMatchEnd);
+				if ( matchStart == -1 ) {
 					break;
 				}
+				
+                if ( !ActionImpl.isTruePackageMatch(text, matchStart, keyLen) ) {
+                    lastMatchEnd = matchStart + keyLen;
+                    continue;
+                }
 
 				String value = renameEntry.getValue();
 				int valueLen = value.length();
 
-				String head = embeddingText.substring(0, nextMatchStart);
-				String tail = embeddingText.substring(nextMatchStart + keyLen);
-				embeddingText = head + value + tail;
+				String head = text.substring(0, matchStart);
+				String tail = text.substring(matchStart + keyLen);
+				text = head + value + tail;
 
-				lastMatchEnd = nextMatchStart + valueLen;
+				lastMatchEnd = matchStart + valueLen;
 				textLimit += (valueLen - keyLen);
 
-				// System.out.println("Next text [ " + embeddingText + " ]");
+				// System.out.println("Next text [ " + text + " ]");
 			}
 		}
 
-		if ( initialText == embeddingText) {
-		// System.out.println("Final text is unchanged");
+		if ( initialText == text) {
+		    //System.out.println("RETURN Final text is unchanged");
 			return null;
 		} else {
-			// System.out.println("Final text [ " + embeddingText + " ]");
-			return embeddingText;
+			//System.out.println("RETURN Final text [ " + text + " ]");
+			return text;
 		}
 	}
 
@@ -241,14 +251,24 @@ public class SignatureRuleImpl implements SignatureRule {
 
 	@Override
 	public String transformConstantAsBinaryType(String inputConstant) {
-		try {
-			return transformBinaryType(inputConstant);
-		} catch ( Throwable th ) {
-			verbose("Failed to parse constant as resource reference [ %s ]: %s", inputConstant, th.getMessage());
-			return null;
-		}
+	    return transformConstantAsBinaryType(inputConstant, NO_SIMPLE_SUBSTITUTION);
 	}
 
+	@Override
+	public String transformConstantAsBinaryType(String inputConstant, boolean allowSimpleSubstitution) {
+	    try {
+	        return transformBinaryType(inputConstant, allowSimpleSubstitution);
+	    } catch ( Throwable th ) {
+	        verbose("Failed to parse constant as resource reference [ %s ]: %s", inputConstant, th.getMessage());
+	        return null;
+	    }
+	}
+
+	@Override
+	public String transformBinaryType(String inputName) {
+	    return transformBinaryType(inputName, NO_SIMPLE_SUBSTITUTION);
+	}
+	   
 	/**
 	 * Modify a fully qualified type name according to the package rename table.
 	 * Answer either the transformed type name, or, if the type name was not changed,
@@ -258,8 +278,7 @@ public class SignatureRuleImpl implements SignatureRule {
 	 *
 	 * @return The transformed type name, or a wrapped null if no changed was made.
 	 */
-	@Override
-	public String transformBinaryType(String inputName) {
+	protected String transformBinaryType(String inputName, boolean allowSimpleSubstitution) {
 		// System.out.println("Input type [ " + inputName + " ]");
 
 		if ( unchangedBinaryTypes.contains(inputName) ) {
@@ -275,31 +294,35 @@ public class SignatureRuleImpl implements SignatureRule {
 
 		char c = inputName.charAt(0);
 		if ( (c == '[') || ((c == 'L') && (inputName.charAt(inputName.length() - 1) == ';')) ) {
-			JavaTypeSignature inputSignature = JavaTypeSignature.of( inputName.replace('$', '.') );
-			JavaTypeSignature outputSignature = transform(inputSignature);
-			if ( outputSignature != null ) {
-				outputName = outputSignature.toString().replace('.', '$');
-			} else {
-				// Leave outputName null.
-			}
+		    JavaTypeSignature inputSignature = JavaTypeSignature.of( inputName.replace('$', '.') );
+		    JavaTypeSignature outputSignature = transform(inputSignature);
+		    if ( outputSignature != null ) {
+		        outputName = outputSignature.toString().replace('.', '$');
+		    } else {
+		        // Leave outputName null.
+		    }
 
 		} else {
-			int lastSlashOffset = inputName.lastIndexOf('/');
-			if ( lastSlashOffset != -1 ) {
-				String inputPackage = inputName.substring(0, lastSlashOffset);
-				// System.out.println("Input package [ " + inputPackage + " ]");
-				String outputPackage = replaceBinaryPackage(inputPackage);
-				if ( outputPackage != null ) {
-					// System.out.println("Output package [ " + outputPackage + " ]");
-					outputName = outputPackage + inputName.substring(lastSlashOffset);
-				} else {
-					// Leave outputName null.
-				}
-			} else {
-				// Leave outputName with null;
-			}
+		    int lastSlashOffset = inputName.lastIndexOf('/');
+		    if ( lastSlashOffset != -1 ) {
+		        String inputPackage = inputName.substring(0, lastSlashOffset);
+		        // System.out.println("Input package [ " + inputPackage + " ]");
+		        String outputPackage = replaceBinaryPackage(inputPackage);
+		        if ( outputPackage != null ) {
+		            // System.out.println("Output package [ " + outputPackage + " ]");
+		            outputName = outputPackage + inputName.substring(lastSlashOffset);
+		        } else {
+		            // Leave outputName null.
+		        }
+		    } else {
+		        // Leave outputName with null;
+		    }
 		}
-
+		
+		if ( (outputName == null) && allowSimpleSubstitution ) {
+		    outputName = replacePackages(inputName, slashedPackageRenames);
+		}
+		
 		if ( outputName == null ) {
 			unchangedBinaryTypes.add(inputName);
 			// System.out.println("Unchanged");
@@ -315,8 +338,13 @@ public class SignatureRuleImpl implements SignatureRule {
 
 	@Override
 	public String transformConstantAsDescriptor(String inputConstant) {
+	    return transformConstantAsDescriptor(inputConstant, NO_SIMPLE_SUBSTITUTION);
+	}
+	
+	@Override
+	public String transformConstantAsDescriptor(String inputConstant, boolean allowSimpleSubstitution) {
 		try {
-			return transformDescriptor(inputConstant);
+			return transformDescriptor(inputConstant, allowSimpleSubstitution);
 		} catch ( Throwable th ) {
 			verbose("Failed to parse constant as descriptor [ %s ]: %s", inputConstant, th.getMessage());
 			return null;
@@ -328,36 +356,46 @@ public class SignatureRuleImpl implements SignatureRule {
 
 	@Override
 	public String transformDescriptor(String inputDescriptor) {
+	    return transformDescriptor(inputDescriptor, NO_SIMPLE_SUBSTITUTION);
+	}
+
+	@Override
+	public String transformDescriptor(String inputDescriptor, boolean allowSimpleSubstitution) {
 		if ( unchangedDescriptors.contains(inputDescriptor) ) {
 			return null;
 		}
 
 		String outputDescriptor = changedDescriptors.get(inputDescriptor);
 		if ( outputDescriptor != null ) {
-			return outputDescriptor;
+		    return outputDescriptor;
 		}
+
 
 		char c = inputDescriptor.charAt(0);
 		if ( c == '(' ) {
-			String inputSignature = inputDescriptor.replace('$', '.');
-			String outputSignature = transform(inputSignature, SignatureType.METHOD);
-			if ( outputSignature != null ) {
-				outputDescriptor = outputSignature.replace('.', '$');
-			} else {
-				// leave outputDescriptor null
-			}
+		    String inputSignature = inputDescriptor.replace('$', '.');
+		    String outputSignature = transform(inputSignature, SignatureType.METHOD);
+		    if ( outputSignature != null ) {
+		        outputDescriptor = outputSignature.replace('.', '$');
+		    } else {
+		        // leave outputDescriptor null
+		    }
 
 		} else  if ( (c == '[') || ((c == 'L') && (inputDescriptor.charAt(inputDescriptor.length() - 1) == ';')) ) {
-			String inputSignature = inputDescriptor.replace('$', '.');
-			String outputSignature = transform(inputSignature, SignatureType.FIELD);
-			if ( outputSignature != null ) {
-				outputDescriptor = outputSignature.replace('.', '$');
-			} else {
-				// leave outputDescriptor null
-			}
+		    String inputSignature = inputDescriptor.replace('$', '.');
+		    String outputSignature = transform(inputSignature, SignatureType.FIELD);
+		    if ( outputSignature != null ) {
+		        outputDescriptor = outputSignature.replace('.', '$');
+		    } else {
+		        // leave outputDescriptor null
+		    }
 
 		} else {
-			// leave outputDescriptor null
+		    // leave outputDescriptor null
+		}
+		
+		if ( (outputDescriptor == null) && allowSimpleSubstitution ) {
+		    outputDescriptor = replacePackages(inputDescriptor, dottedPackageRenames);
 		}
 
 		if ( outputDescriptor == null ) {

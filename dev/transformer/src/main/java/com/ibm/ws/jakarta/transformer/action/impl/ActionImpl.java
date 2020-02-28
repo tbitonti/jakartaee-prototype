@@ -165,19 +165,27 @@ public abstract class ActionImpl implements Action {
 	}
 
 	public String replaceEmbeddedPackages(String embeddingText) {
-		return getSignatureRule().replaceEmbeddedPackages(embeddingText);
+		return getSignatureRule().replacePackages(embeddingText);
 	}
 
 	public String transformConstantAsBinaryType(String inputConstant) {
 		return getSignatureRule().transformConstantAsBinaryType(inputConstant);
 	}
-
+	
+    public String transformConstantAsBinaryType(String inputConstant, boolean simpleSubstitution) {
+        return getSignatureRule().transformConstantAsBinaryType(inputConstant, simpleSubstitution);
+    }
+    
 	public String transformBinaryType(String inputName) {
 		return getSignatureRule().transformBinaryType(inputName);
 	}
 
 	public String transformConstantAsDescriptor(String inputConstant) {
-		return getSignatureRule().transformConstantAsDescriptor(inputConstant);
+	    return getSignatureRule().transformConstantAsDescriptor(inputConstant);
+	}
+
+	public String transformConstantAsDescriptor(String inputConstant, boolean simpleSubstitution) {
+	    return getSignatureRule().transformConstantAsDescriptor(inputConstant, simpleSubstitution);
 	}
 
 	public String transformDescriptor(String inputDescriptor) {
@@ -509,7 +517,13 @@ public abstract class ActionImpl implements Action {
      * @param keyLen
      * @return
      */
-    protected boolean isTruePackageMatch(String text, int matchStart, int keyLen ) {
+    protected static boolean isTruePackageMatch(String text, int matchStart, int keyLen ) {
+//        System.out.println("isTruePackageMatch:\n" 
+//                           + "text[" + text + "]\n"
+//                           + "key[" + text.substring(matchStart, matchStart + keyLen) + "]\n"
+//                           + "tail[" + text.substring(matchStart + keyLen)
+//                           + "*************");
+        
 
         int textLength = text.length();
               
