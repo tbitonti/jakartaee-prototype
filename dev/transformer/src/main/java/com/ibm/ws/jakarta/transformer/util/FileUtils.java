@@ -175,12 +175,22 @@ public class FileUtils {
 	}
 
 	//
+	public static final char SLASH = '/';
 
 	public static String normalize(String path) {
 		if ( File.separatorChar == '\\' ) {
-			return path.replace(File.separatorChar, '/');
+			return path.replace(File.separatorChar, SLASH);
 		} else {
 			return path;
 		}
+	}
+	
+	public static String getFileNameFromPath(String path) {
+	    String normalizedPath = normalize(path);
+	    int lastSlashIndex = normalizedPath.lastIndexOf(SLASH);
+	    if (lastSlashIndex != -1) {
+	       return path.substring(lastSlashIndex + 1); 
+	    }
+	    return path;
 	}
 }

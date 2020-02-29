@@ -304,7 +304,7 @@ public class JakartaTransformer {
     private String[] args;
     private CommandLine parsedArgs;
 
-    protected void setArgs(String[] args) {
+    public void setArgs(String[] args) {
         this.args = args;
     }
 
@@ -312,7 +312,7 @@ public class JakartaTransformer {
         return args;
     }
 
-    protected void setParsedArgs() throws ParseException {
+    public void setParsedArgs() throws ParseException {
         CommandLineParser parser = new DefaultParser();
         this.parsedArgs = parser.parse( getAppOptions(), getArgs());
     }
@@ -325,7 +325,7 @@ public class JakartaTransformer {
      * The input file name is the first command line argument
      * and is required.
      */
-    protected String getInputFileName() {
+    protected String getInputFileNameFromCommandLine() {
     	String[] useArgs = parsedArgs.getArgs();
     	if ( useArgs != null ) {
         	if (useArgs.length > 0) {
@@ -340,7 +340,7 @@ public class JakartaTransformer {
      * and is optional.  If not specified, a default output file name
      * is created based on the input file name.
      */
-    protected String getOutputFileName() {
+    protected String getOutputFileNameFromCommandLine() {
         String[] useArgs = parsedArgs.getArgs();
         if ( useArgs != null ) {
             if (useArgs.length > 1) {
@@ -423,7 +423,7 @@ public class JakartaTransformer {
         }
     }
 
-    private class TransformOptions {
+    public class TransformOptions {
     	public boolean isVerbose;
     	public boolean isTerse;
 
@@ -462,10 +462,18 @@ public class JakartaTransformer {
             	isVerbose = false;
             }
     	}
+    	
+    	public String getInputFileName() {
+    	    return inputName;
+    	}
+    	
+        public String getOutputFileName() {
+            return outputName;
+        }
 
     	private LoggerImpl logger;
 
-    	protected LoggerImpl getLogger() {
+    	public LoggerImpl getLogger() {
     		if ( logger == null ) {
     			logger = new LoggerImpl( getInfoStream(), isTerse, isVerbose );
     		}
@@ -481,7 +489,7 @@ public class JakartaTransformer {
     		return buffer;
     	}
     	
-    	protected boolean setRules() throws IOException, URISyntaxException, IllegalArgumentException {
+    	public boolean setRules() throws IOException, URISyntaxException, IllegalArgumentException {
     		UTF8Properties selectionProperties = loadProperties(AppOption.RULES_SELECTIONS, DEFAULT_SELECTIONS_REFERENCE);
     		UTF8Properties renameProperties = loadProperties(AppOption.RULES_RENAMES, DEFAULT_RENAMES_REFERENCE);
     		UTF8Properties versionProperties = loadProperties(AppOption.RULES_VERSIONS, DEFAULT_VERSIONS_REFERENCE);
@@ -615,8 +623,8 @@ public class JakartaTransformer {
     		return signatureRules;
     	}
 
-        protected boolean setInput() {
-        	String useInputName = getInputFileName();
+        public boolean setInput() {
+        	String useInputName = getInputFileNameFromCommandLine();
             if ( useInputName == null ) {
                 error("No input file was specified\n");
                 return false;
@@ -638,8 +646,8 @@ public class JakartaTransformer {
 
         public static final String OUTPUT_PREFIX = "output_";
 
-        protected boolean setOutput() {
-        	String useOutputName = getOutputFileName();
+        public boolean setOutput() {
+        	String useOutputName = getOutputFileNameFromCommandLine();
 
         	if ( useOutputName != null ) {
         		useOutputName = FileUtils.normalize(useOutputName);
@@ -668,7 +676,7 @@ public class JakartaTransformer {
             // Then write the output file to the directory, using the default output file name
             if ( outputFile.exists()) {
                 if (inputFile.isFile() && outputFile.isDirectory()) {
-                    outputName = outputName + "/" + OUTPUT_PREFIX + inputName;
+                    outputName = outputName + "/" + OUTPUT_PREFIX + FileUtils.getFileNameFromPath(inputName);
                     outputFile = new File(outputName);
                     outputPath = outputFile.getAbsolutePath();
                 }
@@ -769,7 +777,7 @@ public class JakartaTransformer {
         	}
         }
 
-        protected void transform()
+        public void transform()
         	throws JakartaTransformException {
 
         	acceptedAction.apply(inputName, inputFile, outputFile);
@@ -780,6 +788,14 @@ public class JakartaTransformer {
         }
     }
 
+    /**
+     * For test purposes
+     * @return
+     */
+    public TransformOptions getTransformOptions() {
+        return new TransformOptions();
+    }
+    
     public int run() {
         try {
             setParsedArgs();
