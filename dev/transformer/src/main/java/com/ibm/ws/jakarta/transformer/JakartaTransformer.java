@@ -408,6 +408,15 @@ public class JakartaTransformer {
         	return loadDefaultProperties(ruleOption, defaultReference);
         }
     }
+    
+    protected String getRuleReference(AppOption ruleOption, String defaultReference) {
+        String rulesReference = getOptionValue(ruleOption);
+        if ( rulesReference != null ) {
+            return rulesReference;
+        } else {
+            return defaultReference;
+        }
+    }
 
     protected UTF8Properties loadDefaultProperties(AppOption ruleOption, String defaultReference)
         	throws IOException {
@@ -551,7 +560,30 @@ public class JakartaTransformer {
 
         	directStrings = JakartaTransformProperties.getDirectStrings(directProperties);
 
-        	return ( packageRenames != null );
+        	if ( packageRenames != null ) {
+        	    if ( packageVersions != null ) {
+        	       return validateRules(packageRenames, packageVersions);
+        	    } else {
+        	        return true;  // Don't care if Package Versions is null
+        	    }
+        	} else {
+        	    return false;
+        	}
+    	}
+    	
+    	protected boolean validateRules(Map<String, String> renamesMap, 
+    	                                Map<String, String> versionsMap) {
+
+
+    	    for ( String entry : versionsMap.keySet() ) {
+    	        if ( !renamesMap.containsValue(entry) ) {
+    	            error("Version rule key [ " + entry + "] from [ " 
+    	                   + getRuleReference(AppOption.RULES_VERSIONS, DEFAULT_VERSIONS_REFERENCE) + " ] not found in rename rules [ " 
+    	                   + getRuleReference(AppOption.RULES_RENAMES, DEFAULT_RENAMES_REFERENCE) +" ]\n");
+    	            return false;
+    	        }
+    	    }
+    	    return true;
     	}
 
     	protected void logRules(PrintStream logStream) {
