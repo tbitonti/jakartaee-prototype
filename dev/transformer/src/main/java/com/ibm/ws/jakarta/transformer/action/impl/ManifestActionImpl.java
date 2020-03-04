@@ -678,6 +678,13 @@ public class ManifestActionImpl extends ActionImpl implements ManifestAction {
 			verbose("Input [ %s ] has no bundle symbolic name", inputName);
 			return false;
 		}
+		
+		int indexOfSemiColon = initialSymbolicName.indexOf(';');
+		String symbolicNamesAttributes = null;
+		if ( indexOfSemiColon != -1 ) {
+		    symbolicNamesAttributes = initialSymbolicName.substring(indexOfSemiColon);		    
+		    initialSymbolicName = initialSymbolicName.substring(0, indexOfSemiColon);
+		}		
 
 		String matchCase;
 		boolean matched;
@@ -697,7 +704,7 @@ public class ManifestActionImpl extends ActionImpl implements ManifestAction {
 		} else {
 			matched = true;
 			isWildcard = false;
-			matchCase = "has identity update";
+			matchCase = "identity update";
 		}
 		verbose("Input [ %s ] symbolic name [ %s ] has %s\n", inputName, initialSymbolicName, matchCase);
 		if ( !matched ) {
@@ -716,6 +723,11 @@ public class ManifestActionImpl extends ActionImpl implements ManifestAction {
 					finalSymbolicName.substring(wildcardOffset + 1);
 			}
 		}
+		
+		if (symbolicNamesAttributes != null) {
+		   finalSymbolicName += symbolicNamesAttributes;
+		}
+		
 		finalMainAttributes.putValue(SYMBOLIC_NAME_PROPERTY_NAME, finalSymbolicName);
 		log("Bundle symbolic name: %s\n                  --> %s\n", initialSymbolicName, finalSymbolicName);
 
