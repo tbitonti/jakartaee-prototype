@@ -354,7 +354,20 @@ public class SignatureRuleImpl implements SignatureRule {
         return true;
     }
     
-    public static boolean getMatchSubPackages(String key) {
+    /**
+     * Determines if the key contains a wildcard suffix which indicates
+     * that sub-package names are to be matched.
+     * 
+     * Packages names and their replacements are specified in properties files
+     * in key=value pairs or more specifically oldPackageName=newPackageName
+     * 
+     * The key can contain a ".*" suffix which indicates that sub-packages are a
+     * match.
+     * 
+     * @param key package name
+     * @return true if sub-packages are to be matched
+     */
+    public static boolean matchSubPackages(String key) {
         int keyLen = key.length();
         
         if (key.endsWith(".*")) {

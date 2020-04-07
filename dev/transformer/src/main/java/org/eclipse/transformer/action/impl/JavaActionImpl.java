@@ -85,7 +85,7 @@ public class JavaActionImpl extends ActionImpl {
             String key = renameEntry.getKey();
             int keyLen = key.length();
             
-            boolean matchSubpackages = SignatureRuleImpl.getMatchSubPackages(key);
+            boolean matchSubpackages = SignatureRuleImpl.matchSubPackages(key);
 
             //System.out.println("replacePackages: Next target [ " + key + " ]");
             int textLimit = text.length() - keyLen;
