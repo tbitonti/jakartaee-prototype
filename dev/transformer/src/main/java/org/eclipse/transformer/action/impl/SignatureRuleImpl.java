@@ -249,12 +249,10 @@ public class SignatureRuleImpl implements SignatureRule {
 			String key = renameEntry.getKey();
 			int keyLen = key.length();
 			
-			boolean matchSubpackages = false;
-			if (key.endsWith(".*")) {
-			    key = key.substring(0, keyLen - 2 );
-			    keyLen -= 2;
-			    matchSubpackages = true;
-			}
+            boolean matchSubpackages = containsWildcard(key);
+            if (matchSubpackages) {
+                key = stripWildcard(key);
+            }
 			     
 			// System.out.println("Next target [ " + key + " ]");
 
@@ -358,15 +356,19 @@ public class SignatureRuleImpl implements SignatureRule {
      * @param key package name
      * @return true if sub-packages are to be matched
      */
-    public static boolean matchSubPackages(String key) {
-        int keyLen = key.length();
-        
+    public static boolean containsWildcard(String key) {
+
         if (key.endsWith(".*")) {
-            key = key.substring(0, keyLen - 2 );
-            keyLen -= 2;
             return true;
         }
         return false;
+    }
+    
+    public static String stripWildcard(String key) {
+        if (key.endsWith(".*")) {
+            key = key.substring(0, key.length() - 2 );
+        }
+        return key;
     }
 	
 	/**

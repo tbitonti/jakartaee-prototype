@@ -335,7 +335,10 @@ public class ManifestActionImpl extends ActionImpl {
 			String key = renameEntry.getKey();
 			int keyLen = key.length();
 			
-			boolean matchSubpackages = SignatureRuleImpl.matchSubPackages(key);
+			boolean matchSubpackages = SignatureRuleImpl.containsWildcard(key);
+            if (matchSubpackages) {
+                key = SignatureRuleImpl.stripWildcard(key);
+            }
 
 			// System.out.println("Next target [ " + key + " ]");
 

@@ -1,99 +1,105 @@
 Transform Rules:
 
-Update cases:
+  Update cases:
 
-Case name: Package Rename
-Command line argument: -tr, --renames
-Rule content: Specifies a package rename as a key-value pair which maps an initial package name to a final package name.
-Wildcard support: Supports the optional use of '*' at the end of the input package name.
+  Case name: Package Rename
+  Command line argument: -tr, --renames
+  Rule content: Specifies a package rename as a key-value pair which maps an initial package name to a final package name.
+  Wildcards:  The initial package name can contain a ".*" suffix which indicates
+              sub-packages are to be matched.  For example:
 
-Used by: Class action
+                    javax.servlet.*=jakartax.servlet
 
-Class applications:
+                    This will cause subpackages like javax.servlet.annotation 
+                    to be replaced by jakartax.servlet.annotation
 
-* Changes the names of classes which reside in a renamed package.
-* Changes the resource/paths of classes which reside in a renamed package.
-* Changes references to the renamed package.
-* Changes string constants which contain the renamed package.
+      Used by: Class action
 
-Used by: Service configuration loader action
+          Class applications:
 
-Service configuration loader applications:
+              * Changes the names of classes which reside in a renamed package.
+              * Changes the resource/paths of classes which reside in a renamed package.
+              * Changes references to the renamed package.
+              * Changes string constants which contain the renamed package.
 
-* Changes the names of resource configuration files which include the renamed package.
-* Changes the values within resource configuration files which include the renamed package.
+      Used by: Service configuration loader action
 
-Used by: Java action
+          Service configuration loader applications:
 
-Java applications:
+              * Changes the names of resource configuration files which include the renamed package.
+              * Changes the values within resource configuration files which include the renamed package.
 
-* Changes any source text which includes the renamed package.
+      Used by: Java action
 
-Used by: Manifest action
+          Java applications:
 
-Manifest applications:
+              * Changes any source text which includes the renamed package.
 
-* Updates any property values which include the renamed package.
+      Used by: Manifest action
 
-Used by: Feature manifest action
+          Manifest applications:
 
-Feature manifest applications:
+              * Updates any property values which include the renamed package.
 
-* Same as manifest applications.
+      Used by: Feature manifest action
 
-Case name: Version Update
-Command line argument: -tv, --version
-Rule content: Specifies a package version assignment as a key-value pair which maps an package name to a version range.
-Wildcard support: None
+          Feature manifest applications:
 
-Used by: Manifest action
+              * Same as manifest applications.
 
-Manifest applications:
+  Case name: Version Update
+      Command line argument: -tv, --version
+      Rule content: Specifies a package version assignment as a key-value pair which maps an package name to a version range.
+      Wildcards: None
 
-* Updates version values of package references which occur in OSGi attributes "DynamicImport-Package", "Export-Package", "Import-Package", "Subsystem-Content", and "IBM-API-Package".
-  Version updates are performed after performing package rename updates.
+      Used by: Manifest action
 
-Used by: Feature manifest action
+          Manifest applications:
 
-Feature manifest applications:
+              * Updates version values of package references which occur in OSGi attributes "DynamicImport-Package", "Export-Package", "Import-Package", "Subsystem-Content", and "IBM-API-Package".
+              Version updates are performed after performing package rename updates.
 
-* Same as manifest applications 
+      Used by: Feature manifest action
 
-Case name: Bundle identity update
-Command line argument: -tb, --bundles
-Rule content: Specifies a bundle identity update as key-value pair, mapping an initial bundle symbolic name to a comma delimited list of bundle identity update information. The bundle update information consists of a final bundle symbolic value, a version value for the final bundle, a name for the final bundle, and a description for the final bundle.
-Wildcard support: The final bundle name and final bundle description values support a leading '+', which indicates that the final value will be appended to the corresponding initial value.
+          Feature manifest applications:
 
-Used by: Manifest action
+              * Same as manifest applications 
 
-Manifest action applications
+  Case name: Bundle identity update
+      Command line argument: -tb, --bundles
+      Rule content: Specifies a bundle identity update as key-value pair, mapping an initial bundle symbolic name to a comma delimited list of bundle identity update information. The bundle update information consists of a final bundle symbolic value, a version value for the final bundle, a name for the final bundle, and a description for the final bundle.
+      Wildcards: The final bundle name and final bundle description values support a leading '+', which indicates that the final value will be appended to the corresponding initial value.
 
-* For each manifest which contains a "Bundle-SymbolicName" which matches a specified bundle symbolic name, updates the bundle properties "Bundle-SymbolicName", "Bundle-Version", "Bundle-Name", and "Bundle-Description" using the supplied bundle identity update values.
+      Used by: Manifest action
 
-Used by: Feature manifest action
+      Manifest action applications
 
-Feature manifest action applications:
+          * For each manifest which contains a "Bundle-SymbolicName" which matches a specified bundle symbolic name, updates the bundle properties "Bundle-SymbolicName", "Bundle-Version", "Bundle-Name", and "Bundle-Description" using the supplied bundle identity update values.
 
-* Same as manifest applications
+      Used by: Feature manifest action
 
-Case name: Class simple string update
-Command line argument: -td, --direct 
-Rule content: Specifes a simple string replacement as a key value pair, mapping an initial text value to a final text value. 
-Wildcard support: None
+      Feature manifest action applications:
 
-Used by: Class action
+          * Same as manifest applications
 
-Class applications:
+  Case name: Class simple string update
+      Command line argument: -td, --direct 
+      Rule content: Specifes a simple string replacement as a key value pair, mapping an initial text value to a final text value. 
+      Wildcards: None
 
-* Updates each string constant which matches an initial value exactly with the final value.
+      Used by: Class action
 
-Case name: XML simple string update
-Command line argument: -tf
-Rule content: Specifies simple string updates to XML files using two tiers of properties.  The first tier key-value pairs map the XML file names you want to update to the second tier property file names.  The second tier property files contain key-value pairs which specify simple string updates.  The keys are the strings to be updated.  The values are the replacement strings.
-Wildcard support: XML file names (keys only) may include an * wildcard.
+          Class applications:
 
-Used by: XML action
+              * Updates each string constant which matches an initial value exactly with the final value.
 
-XML action applications:
+  Case name: XML simple string update
+      Command line argument: -tf
+      Rule content: Specifies simple string updates to XML files using two tiers of properties.  The first tier key-value pairs map the XML file names you want to update to the second tier property file names.  The second tier property files contain key-value pairs which specify simple string updates.  The keys are the strings to be updated.  The values are the replacement strings.
+      Wildcards: XML file names (keys only) may include an * wildcard.
 
-* Each XML file which matches one of the first tier keys is updated by applying each of the selected second tier key-value pairs, performing simple text substitution on the raw text of the XML file. 
+      Used by: XML action
+
+          XML action applications:
+
+              * Each XML file which matches one of the first tier keys is updated by applying each of the selected second tier key-value pairs, performing simple text substitution on the raw text of the XML file. 

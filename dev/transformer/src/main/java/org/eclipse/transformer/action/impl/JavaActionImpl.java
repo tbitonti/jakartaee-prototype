@@ -85,7 +85,10 @@ public class JavaActionImpl extends ActionImpl {
             String key = renameEntry.getKey();
             int keyLen = key.length();
             
-            boolean matchSubpackages = SignatureRuleImpl.matchSubPackages(key);
+            boolean matchSubpackages = SignatureRuleImpl.containsWildcard(key);
+            if (matchSubpackages) {
+                key = SignatureRuleImpl.stripWildcard(key);
+            }
 
             //System.out.println("replacePackages: Next target [ " + key + " ]");
             int textLimit = text.length() - keyLen;
@@ -149,7 +152,7 @@ public class JavaActionImpl extends ActionImpl {
 		// }
 		setResourceNames(inputName, outputName);
 
-		InputStream inputStream = new ByteArrayInputStream(inputBytes);
+		InputStream inputStream = new ByteArrayInputStream(inputBytes, 0, inputLength);
 		InputStreamReader inputReader;
 		try {
 			inputReader = new InputStreamReader(inputStream, "UTF-8");
