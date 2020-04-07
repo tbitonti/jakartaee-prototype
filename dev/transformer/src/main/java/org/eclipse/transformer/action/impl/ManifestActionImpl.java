@@ -335,12 +335,7 @@ public class ManifestActionImpl extends ActionImpl {
 			String key = renameEntry.getKey();
 			int keyLen = key.length();
 			
-			boolean matchSubpackages = false;
-			if (key.endsWith(".*")) {
-			    key = key.substring(0, keyLen - 2 );
-			    keyLen -= 2;
-			    matchSubpackages = true;
-			}
+			boolean matchSubpackages = SignatureRuleImpl.getMatchSubPackages(key);
 
 			// System.out.println("Next target [ " + key + " ]");
 
