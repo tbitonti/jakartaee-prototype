@@ -123,7 +123,7 @@ public class XmlActionImpl extends ActionImpl {
 
 	    setResourceNames(inputName, outputName);
 
-	    InputStream inputStream = new ByteArrayInputStream(inputBytes);
+	    InputStream inputStream = new ByteArrayInputStream(inputBytes, 0, inputLength);
 	    InputStreamReader inputReader;
 	    try {
 	        inputReader = new InputStreamReader(inputStream, "UTF-8");
