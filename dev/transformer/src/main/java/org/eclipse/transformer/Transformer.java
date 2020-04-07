@@ -775,7 +775,7 @@ public class Transformer {
         	           substitutionsMap = TransformProperties.convertPropertiesToMap(substitutions); // throws IllegalArgumentException
         	           specificXmlFileUpdates.put(xmlFileName, substitutionsMap);
         	        } else {
-        	            dual_info("{} will not be updated", xmlFileName);
+        	            dual_error("[ %s ] will not be updated", xmlFileName);
         	        }
         	    }
         	} else {
