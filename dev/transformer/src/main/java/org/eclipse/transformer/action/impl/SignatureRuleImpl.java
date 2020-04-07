@@ -340,16 +340,29 @@ public class SignatureRuleImpl implements SignatureRule {
             // for package names that do not follow the convention of using lower case characters ).            
             // If lower case, then it indicates we are looking at a larger package name, and thus not a match.
             // If the character after the dot is a number, also assume the number is a continuation of the package name.
-            if (charAfterMatch == '.') {
-                if ( textLength > (matchEnd+1) )  {
-                    char charAfterDot = text.charAt(matchEnd+1);
-                    if ( Character.isLowerCase(charAfterDot) || Character.isDigit(charAfterDot) ) {
-                        return false;
+            if ( !matchSubpackages ) {
+                if (charAfterMatch == '.') {
+                    if ( textLength > (matchEnd+1) )  {
+                        char charAfterDot = text.charAt(matchEnd+1);
+                        if ( Character.isLowerCase(charAfterDot) || Character.isDigit(charAfterDot) ) {
+                            return false;
+                        }
                     }
                 }
             }
         }
         return true;
+    }
+    
+    public static boolean getMatchSubPackages(String key) {
+        int keyLen = key.length();
+        
+        if (key.endsWith(".*")) {
+            key = key.substring(0, keyLen - 2 );
+            keyLen -= 2;
+            return true;
+        }
+        return false;
     }
 	
 	/**
