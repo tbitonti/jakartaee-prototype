@@ -257,7 +257,14 @@ public class SignatureRuleImpl implements SignatureRule {
 		for ( Map.Entry<String, String> renameEntry : packageRenames.entrySet() ) {
 			String key = renameEntry.getKey();
 			int keyLen = key.length();
-
+			
+			boolean matchSubpackages = false;
+			if (key.endsWith(".*")) {
+			    key = key.substring(0, keyLen - 2 );
+			    keyLen -= 2;
+			    matchSubpackages = true;
+			}
+			     
 			// System.out.println("Next target [ " + key + " ]");
 
 			int textLimit = text.length() - keyLen;
@@ -269,7 +276,7 @@ public class SignatureRuleImpl implements SignatureRule {
 					break;
 				}
 				
-                if ( !ActionImpl.isTruePackageMatch(text, matchStart, keyLen) ) {
+                if ( !isTruePackageMatch(text, matchStart, keyLen, matchSubpackages) ) {
                     lastMatchEnd = matchStart + keyLen;
                     continue;
                 }
@@ -296,6 +303,54 @@ public class SignatureRuleImpl implements SignatureRule {
 			return text;
 		}
 	}
+	
+    /**
+     * Checks the character before and after a match to verify that the match
+     * is NOT a subset of a larger package, and thus not really a match.
+     */
+    public static boolean isTruePackageMatch(String text, int matchStart, int keyLen, boolean matchSubpackages ) {
+//        System.out.println("isTruePackageMatch:" 
+//                           + " text[" + text + "]"
+//                           + " key[" + text.substring(matchStart, matchStart + keyLen) + "]"
+//                           + " tail[" + text.substring(matchStart + keyLen)
+//                           + " *************");
+
+        int textLength = text.length();
+              
+        if ( matchStart > 0 ) {
+            char charBeforeMatch = text.charAt(matchStart - 1);
+            if ( Character.isJavaIdentifierPart(charBeforeMatch) || (charBeforeMatch == '.')) { 
+                return false;
+            }
+        }
+
+        int matchEnd = matchStart + keyLen;
+        if ( textLength > matchEnd ) {
+
+            char charAfterMatch = text.charAt(matchEnd);
+                        
+            // Check the next character can also be part of a package name then 
+            // we are looking at a larger package name, and thus not a match.
+            if ( Character.isJavaIdentifierPart(charAfterMatch) ) {
+                return false;
+            }
+            
+            // If the next char is dot, check the character after the dot.  Assume an upper case letter indicates the start of a 
+            // class name and thus the end of the package name which indicates a match. ( This means this doesn't work 
+            // for package names that do not follow the convention of using lower case characters ).            
+            // If lower case, then it indicates we are looking at a larger package name, and thus not a match.
+            // If the character after the dot is a number, also assume the number is a continuation of the package name.
+            if (charAfterMatch == '.') {
+                if ( textLength > (matchEnd+1) )  {
+                    char charAfterDot = text.charAt(matchEnd+1);
+                    if ( Character.isLowerCase(charAfterDot) || Character.isDigit(charAfterDot) ) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
 	
 	/**
 	 * @param p a compiled pattern

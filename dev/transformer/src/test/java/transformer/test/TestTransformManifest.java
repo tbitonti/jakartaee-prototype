@@ -443,7 +443,7 @@ public class TestTransformManifest extends CaptureTest {
 		}
 
 		public boolean callIsTrueMatch(String text, int matchStart, int keyLen ) {
-			return isTruePackageMatch(text, matchStart, keyLen );
+			return SignatureRuleImpl.isTruePackageMatch(text, matchStart, keyLen, false );
 		}
 
 		public String callReplacePackageVersion(String embeddingText, String newPackageVersion) {
