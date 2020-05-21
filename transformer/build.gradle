@@ -8,6 +8,7 @@ plugins {
 sourceCompatibility = '1.8'
 targetCompatibility = '1.8'
 
+group = 'org.eclipse.transformer'
 version = '0.1.0-SNAPSHOT'
 
 configurations {
@@ -63,3 +64,39 @@ tasks.register('downloadArchives', Copy) {
   into project.layout.buildDirectory.dir('archives')
   from configurations.archive
 }
+
+publishing {
+  publications {
+    mavenJava(MavenPublication) {
+	  artifactId = 'transformer'
+	  from components.java
+
+    versionMapping {
+      usage('java-api') {
+        fromResolutionOf('runtimeClasspath')
+      }
+      usage('java-runtime') {
+        fromResolutionResult()
+      }
+    }
+
+		pom {
+			name = 'Eclipse Jakarta EE Transformer'
+			description = 'A library to perform the transformation from javax to jakarta'
+			url = 'http://github.com/tbitonti/jakartaee-prototype'
+			licenses {
+				license {
+					name = 'The Apache License, Version 2.0'
+					url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+				}
+			}
+			scm {
+				connection = 'scm:git:git@github.com:tbitonti/jakartaee-prototype.git'
+				developerConnection = 'scm:git:git@github.com:tbitonti/jakartaee-prototype.git'
+				url = 'http://github.com/tbitonti/jakartaee-prototype'
+			}
+		}
+	}
+  }
+}
+
