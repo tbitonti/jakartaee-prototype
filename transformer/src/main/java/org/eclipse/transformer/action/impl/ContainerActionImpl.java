@@ -21,10 +21,10 @@ import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
 import org.eclipse.transformer.TransformException;
+import org.eclipse.transformer.TransformerState;
 import org.eclipse.transformer.action.Action;
 import org.eclipse.transformer.action.ActionType;
 import org.eclipse.transformer.action.ContainerAction;
-import org.eclipse.transformer.action.ContainerChanges;
 import org.eclipse.transformer.util.ByteData;
 import org.eclipse.transformer.util.FileUtils;
 import org.eclipse.transformer.util.InputStreamData;
@@ -97,35 +97,31 @@ public abstract class ContainerActionImpl extends ActionImpl implements Containe
 	}
 
 	@Override
-	public ContainerChangesImpl getLastActiveChanges() {
-		return (ContainerChangesImpl) super.getLastActiveChanges();
-	}
-
-	@Override
-	public ContainerChangesImpl getActiveChanges() {
-		return (ContainerChangesImpl) super.getActiveChanges();
+	public ContainerChangesImpl getActiveChanges(TransformerState state) {
+		return (ContainerChangesImpl) super.getActiveChanges(state);
 	}
 
 	//
 
-	protected void recordUnaccepted(String resourceName) {
+	protected void recordUnaccepted(TransformerState state, String resourceName) {
 		debug("Resource [ {} ]: Not accepted", resourceName);
 
-		getActiveChanges().record();
+		getActiveChanges(state).record();
 	}
 
-	protected void recordUnselected(Action action, String resourceName) {
+	protected void recordUnselected(TransformerState state, Action action, String resourceName) {
 		debug( "Resource [ {} ] Action [ {} ]: Accepted but not selected",
-			   resourceName, action.getName() );
+			resourceName, action.getName() );
 
-		getActiveChanges().record( action, !ContainerChanges.HAS_CHANGES );
+		getActiveChanges(state).record(action, !ContainerChangesImpl.HAS_CHANGES);
 	}
 
-	protected void recordTransform(Action action, String resourceName) {
+	protected void recordTransform(TransformerState state, ActionImpl action, String resourceName) {
 		debug( "Resource [ {} ] Action [ {} ]: Changes [ {} ]",
-			   resourceName, action.getName(), action.hadChanges() );
+			resourceName, action.getName(),
+			getLastActiveChanges(state).hasChanges() );
 
-		getActiveChanges().record(action);
+		getActiveChanges(state).record(state, action);
 	}
 
 	// Byte base container conversion is not supported.
@@ -135,7 +131,9 @@ public abstract class ContainerActionImpl extends ActionImpl implements Containe
 	}
 
 	@Override
-	public ByteData apply(String inputName, byte[] inputBytes, int inputLength)
+	public ByteData apply(
+		TransformerState state,
+		String inputName, byte[] inputBytes, int inputLength)
 		throws TransformException {
 		throw new UnsupportedOperationException();
 	}
@@ -144,13 +142,14 @@ public abstract class ContainerActionImpl extends ActionImpl implements Containe
 
 	@Override
 	public void apply(
+		TransformerState state,
 		String inputPath, InputStream inputStream, long inputCount,
 		OutputStream outputStream) throws TransformException {
 
-		startRecording(inputPath);
+		startRecording(state, inputPath);
 
 		try {
-			setResourceNames(inputPath, inputPath);
+			setResourceNames(state, inputPath, inputPath);
 
 			// Use Zip streams instead of Jar streams.
 			//
@@ -160,7 +159,7 @@ public abstract class ContainerActionImpl extends ActionImpl implements Containe
 			ZipOutputStream zipOutputStream = new ZipOutputStream(outputStream);
 
 			try {
-				apply(inputPath, zipInputStream, zipOutputStream);
+				apply(state, inputPath, zipInputStream, zipOutputStream);
 				// throws JakartaTransformException
 
 			} finally {
@@ -172,11 +171,12 @@ public abstract class ContainerActionImpl extends ActionImpl implements Containe
 			}
 
 		} finally {
-			stopRecording(inputPath);
+			stopRecording(state, inputPath);
 		}
 	}
 
 	protected void apply(
+		TransformerState state,	
 		String inputPath, ZipInputStream zipInputStream,
 		ZipOutputStream zipOutputStream) throws TransformException {
 
@@ -195,13 +195,13 @@ public abstract class ContainerActionImpl extends ActionImpl implements Containe
 					getClass().getSimpleName(), "apply", inputName, inputLength );
 
 				boolean selected = select(inputName);
-				Action acceptedAction = acceptAction(inputName);
+				ActionImpl acceptedAction = acceptAction(inputName);
 
 				if ( !selected || (acceptedAction == null) ) {
 					if ( acceptedAction == null ) {
-						recordUnaccepted(inputName);
+						recordUnaccepted(state, inputName);
 					} else {
-						recordUnselected(acceptedAction, inputName);
+						recordUnselected(state, acceptedAction, inputName);
 					}
 
 					// TODO: Should more of the entry details be transferred?
@@ -251,8 +251,8 @@ public abstract class ContainerActionImpl extends ActionImpl implements Containe
 						ZipEntry outputEntry = new ZipEntry(inputName);
 						zipOutputStream.putNextEntry(outputEntry); // throws IOException
 
-						acceptedAction.apply(inputName, zipInputStream, inputLength, zipOutputStream);
-						recordTransform(acceptedAction, inputName);
+						acceptedAction.apply(state, inputName, zipInputStream, inputLength, zipOutputStream);
+						recordTransform(state, acceptedAction, inputName);
 						zipOutputStream.closeEntry(); // throws IOException
 
 					} else {
@@ -263,13 +263,13 @@ public abstract class ContainerActionImpl extends ActionImpl implements Containe
 							intInputLength = FileUtils.verifyArray(0, inputLength);
 						}
 
-						InputStreamData outputData =
-							acceptedAction.apply(inputName, zipInputStream, intInputLength);
-						recordTransform(acceptedAction, inputName);
+						InputStreamData outputData = acceptedAction.apply(
+							state, inputName, zipInputStream, intInputLength);
+						recordTransform(state, acceptedAction, inputName);
 
 						// TODO: Should more of the entry details be transferred?
 
-						ZipEntry outputEntry = new ZipEntry( acceptedAction.getLastActiveChanges().getOutputResourceName() );
+						ZipEntry outputEntry = new ZipEntry( getLastActiveChanges(state).getOutputResourceName() );
 						zipOutputStream.putNextEntry(outputEntry); // throws IOException
 						FileUtils.transfer(outputData.stream, zipOutputStream, buffer); // throws IOException 
 						zipOutputStream.closeEntry(); // throws IOException

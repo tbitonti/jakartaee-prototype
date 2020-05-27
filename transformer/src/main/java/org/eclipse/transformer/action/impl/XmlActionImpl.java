@@ -28,6 +28,7 @@ import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 
 import org.eclipse.transformer.TransformException;
+import org.eclipse.transformer.TransformerState;
 import org.eclipse.transformer.action.ActionType;
 import org.eclipse.transformer.util.ByteData;
 import org.slf4j.Logger;
@@ -83,19 +84,21 @@ public class XmlActionImpl extends ActionImpl {
     }
 
 	@Override
-	public ByteData apply(String inputName, byte[] inputBytes, int inputCount) throws TransformException {
+	public ByteData apply(
+		TransformerState state,
+		String inputName, byte[] inputBytes, int inputCount) throws TransformException {
 	    if (XML_AS_PLAIN_TEXT ) {
-	        return applyAsPlainText(inputName, inputBytes, inputCount);
+	        return applyAsPlainText(state, inputName, inputBytes, inputCount);
 	    }
 
-		setResourceNames(inputName, inputName);
+		setResourceNames(state, inputName, inputName);
 
 		InputStream inputStream = new ByteArrayInputStream(inputBytes, 0, inputCount);
 		ByteArrayOutputStream outputStream = new ByteArrayOutputStream(inputCount);
 
-		transformUsingSaxParser(inputName, inputStream, outputStream);
+		transformUsingSaxParser(state, inputName, inputStream, outputStream);
 
-		if ( !hasNonResourceNameChanges() ) {
+		if ( !hasNonResourceNameChanges(state) ) {
 			return null;
 
 		} else {
@@ -105,12 +108,14 @@ public class XmlActionImpl extends ActionImpl {
 	}
 
 	@SuppressWarnings("unused")
-	public ByteData applyAsPlainText(String inputName, byte[] inputBytes, int inputLength)
+	public ByteData applyAsPlainText(
+		TransformerState state,
+		String inputName, byte[] inputBytes, int inputLength)
 	    throws TransformException {
 
 	    String outputName = inputName;
 
-	    setResourceNames(inputName, outputName);
+	    setResourceNames(state, inputName, outputName);
 
 	    InputStream inputStream = new ByteArrayInputStream(inputBytes, 0, inputLength);
 	    InputStreamReader inputReader;
@@ -135,7 +140,7 @@ public class XmlActionImpl extends ActionImpl {
 	    BufferedWriter writer = new BufferedWriter(outputWriter);
 
 	    try {
-	        transformAsPlainText(inputName, reader, writer); // throws IOException
+	        transformAsPlainText(state, inputName, reader, writer); // throws IOException
 	    } catch ( IOException e ) {
 	        error("Failed to transform [ {} ]", e, inputName);
 	        return null;
@@ -148,7 +153,7 @@ public class XmlActionImpl extends ActionImpl {
 	        return null;
 	    }
 
-	    if ( !hasNonResourceNameChanges() ) {
+	    if ( !hasNonResourceNameChanges(state) ) {
 	        return null;
 	    }
 
@@ -183,11 +188,15 @@ public class XmlActionImpl extends ActionImpl {
 
 	//
 
-	public void transform(String inputName, InputStream input, OutputStream output) throws TransformException {
+	public void transform(
+		TransformerState state,
+		String inputName, InputStream input, OutputStream output)
+		throws TransformException {
+
 		InputSource inputSource = new InputSource(input);
 		inputSource.setEncoding("UTF-8");
 
-		XMLContentHandler handler = new XMLContentHandler(inputName, inputSource, output);
+		XMLContentHandler handler = new XMLContentHandler(state, inputName, inputSource, output);
 
 		SAXParser parser;
 		try {
@@ -204,11 +213,15 @@ public class XmlActionImpl extends ActionImpl {
 		}
 	}
 
-	public void transformUsingSaxParser(String inputName, InputStream input, OutputStream output) throws TransformException {
+	public void transformUsingSaxParser(
+		TransformerState state,
+		String inputName, InputStream input, OutputStream output)
+		throws TransformException {
+
 	    InputSource inputSource = new InputSource(input);
 	    inputSource.setEncoding("UTF-8");
 
-	    XMLContentHandler handler = new XMLContentHandler(inputName, inputSource, output);
+	    XMLContentHandler handler = new XMLContentHandler(state, inputName, inputSource, output);
 
 	    SAXParser parser;
 	    try {
@@ -225,8 +238,10 @@ public class XmlActionImpl extends ActionImpl {
 	    }
 	}
 
-	protected void transformAsPlainText(String inputName, BufferedReader reader, BufferedWriter writer)
-	        throws IOException {
+	protected void transformAsPlainText(
+		TransformerState state,
+		String inputName, BufferedReader reader, BufferedWriter writer)
+		throws IOException {
 
 	    String inputLine;
 	    while ( (inputLine = reader.readLine()) != null ) {
@@ -234,7 +249,7 @@ public class XmlActionImpl extends ActionImpl {
 	        if ( outputLine == null ) {
 	            outputLine = inputLine;
 	        } else {
-	            addReplacement();
+	            addReplacement(state);
 	        }
 	        writer.write(outputLine);
 	        writer.write('\n');
@@ -244,7 +259,12 @@ public class XmlActionImpl extends ActionImpl {
 	//
 
 	public class XMLContentHandler extends DefaultHandler {
-		public XMLContentHandler(String inputName, InputSource inputSource, OutputStream outputStream) {
+		public XMLContentHandler(
+			TransformerState state,
+			String inputName, InputSource inputSource, OutputStream outputStream) {
+			
+			this.state = state;
+
 			this.inputName = inputName;
 			this.charset = Charset.forName( inputSource.getEncoding() );
 			this.publicId = inputSource.getPublicId();
@@ -257,6 +277,8 @@ public class XmlActionImpl extends ActionImpl {
 
 		//
 
+		private final TransformerState state;
+		
 		private final String inputName;
 
 		private final String publicId;
@@ -428,13 +450,14 @@ public class XmlActionImpl extends ActionImpl {
 
 		@Override
 		public void characters(char[] chars, int start, int length) throws SAXException {
+
 		    String initialText = new String(chars, start, length);
 		    debug("characters: initialText["+initialText+"]");
 
 		    String finalText = XmlActionImpl.this.replaceText(inputName, initialText);
 		    if ( finalText == null ) {
 		        finalText = initialText;
-		        XmlActionImpl.this.addReplacement();
+		        XmlActionImpl.this.addReplacement(state);
 		    }
 
 		    debug("characters:  finalText["+ finalText+"]");

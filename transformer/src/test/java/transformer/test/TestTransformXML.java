@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.eclipse.transformer.TransformException;
+import org.eclipse.transformer.TransformerState;
 import org.eclipse.transformer.action.impl.InputBufferImpl;
 import org.eclipse.transformer.action.impl.SelectionRuleImpl;
 import org.eclipse.transformer.action.impl.SignatureRuleImpl;
@@ -169,13 +170,17 @@ public class TestTransformXML extends CaptureTest {
             initialLines = display(resourceRef, resourceInput);
         }
 
+        TransformerState state = createTransformerState();
+
         TextActionImpl textAction = getTextAction();
         System.out.println("Transform [ " + resourceRef + " ] using [ " + textAction.getName() + " ]");
 
         List<String> finalLines;
         try ( InputStream resourceInput = TestUtils.getResourceStream(resourceRef) ) { // throws IOException
-            InputStreamData xmlOutput = textAction.apply(resourceRef, resourceInput); // throws
-                                                                                        // JakartaTransformException
+
+            InputStreamData xmlOutput = textAction.apply(
+            	state, resourceRef, resourceInput); // throws JakartaTransformException
+
             finalLines = display(resourceRef, xmlOutput.stream);
         }
 

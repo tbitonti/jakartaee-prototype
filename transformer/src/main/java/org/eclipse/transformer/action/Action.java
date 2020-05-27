@@ -16,7 +16,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 
 import org.eclipse.transformer.TransformException;
-import org.eclipse.transformer.action.impl.InputBufferImpl;
+import org.eclipse.transformer.TransformerState;
 import org.eclipse.transformer.util.InputStreamData;
 
 public interface Action {
@@ -102,13 +102,16 @@ public interface Action {
 	 * Apply this action onto an input file, writing output
 	 * onto an output file.
 	 *
+	 * @param state Transformer state.
 	 * @param inputName A name associated with the input file.
 	 * @param inputFile The input file.
 	 * @param outputFile The output file.
 	 *
 	 * @throws TransformException Thrown if the action could not be applied.
 	 */
-	void apply(String inputName, File inputFile, File outputFile)
+	void apply(
+		TransformerState state,
+		String inputName, File inputFile, File outputFile)
 		throws TransformException;
 
 	/**
@@ -118,6 +121,7 @@ public interface Action {
 	 * will be the original data if the input stream if this action declined
 	 * to process the input data.
 	 *
+	 * @param state Transformer state.
 	 * @param inputName A name associated with the input data.
 	 * @param inputStream A stream containing input data.
 	 *
@@ -125,7 +129,9 @@ public interface Action {
 	 *
 	 * @throws TransformException Thrown if the transform failed. 
 	 */
-	InputStreamData apply(String inputName, InputStream inputStream)
+	InputStreamData apply(
+		TransformerState state,
+		String inputName, InputStream inputStream)
 		throws TransformException;
 
 	/**
@@ -138,6 +144,7 @@ public interface Action {
 	 * The input count may be {@link InputStreamData#UNKNOWN_LENGTH}, in which
 	 * case all available data will be read from the input stream.
 	 *
+	 * @param state Transformer state.
 	 * @param inputName A name associated with the input data.
 	 * @param inputStream A stream containing input data.
 	 * @param inputCount The count of bytes available in the input stream.
@@ -146,7 +153,9 @@ public interface Action {
 	 *
 	 * @throws TransformException Thrown if the transform failed. 
 	 */
-	InputStreamData apply(String inputName, InputStream inputStream, int inputCount)
+	InputStreamData apply(
+		TransformerState state,
+		String inputName, InputStream inputStream, int inputCount)
 		throws TransformException;
 
 	/**
@@ -157,6 +166,7 @@ public interface Action {
 	 * The input count may be {@link InputStreamData#UNKNOWN_LENGTH}, in which
 	 * case all available data will be read from the input stream.
 	 *
+	 * @param state Transformer state.
 	 * @param inputName A name associated with the input data.
 	 * @param inputStream A stream containing input data.
 	 * @param inputCount The count of bytes available in the input stream.
@@ -165,96 +175,7 @@ public interface Action {
 	 * @throws TransformException Thrown if the transform failed. 
 	 */	
 	void apply(
+		TransformerState state,
 		String inputName, InputStream inputStream, long inputCount,
 		OutputStream outputStream) throws TransformException;
-
-	//
-
-	/**
-	 * Answer the last active changes.
-	 *
-	 * @return The last active changes.
-	 */
-	Changes getLastActiveChanges();
-
-	/**
-	 * Answer the current active changes.
-	 *
-	 * @return The current active changes.
-	 */
-	Changes getActiveChanges();
-
-	/**
-	 * Record a single replacement to the changes of this action.
-	 */
-	void addReplacement();
-	
-	/**
-	 * Add to the count of replacements made by this action.
-	 * 
-	 * @param additions The count of replacements to add. 
-	 */
-	void addReplacements(int additions);
-
-	//
-
-	/**
-	 * Tell if the current application of this action had changes.
-	 * 
-	 * @return True or false telling if the current application of this action
-	 *     had changes.
-	 */
-	boolean hasChanges();
-
-	/**
-	 * Tell if the current application of this action had changes other than
-	 * a resource name change.
-	 *
-	 * @return True or false telling if the current application of this action
-	 *     had changes other than resource name changes.
-	 */
-	boolean hasNonResourceNameChanges();
-
-	/**
-	 * Tell if the current application of this action changed the name of the
-	 * resource.
-	 *
-	 * @return True or false telling if the current application of this action
-	 *     changed the name of the resource.
-	 */
-	boolean hasResourceNameChange();
-
-	//
-	
-	/**
-	 * Tell if the last application of this action had changes.
-	 * 
-	 * @return True or false telling if the last application of this action
-	 *     had changes.
-	 */
-	boolean hadChanges();
-
-	/**
-	 * Tell if the last application of this action had changes other than
-	 * a resource name change.
-	 *
-	 * @return True or false telling if the last application of this action
-	 *     had changes other than resource name changes.
-	 */
-	boolean hadNonResourceNameChanges();
-
-	/**
-	 * Tell if the last application of this action changed the name of the
-	 * resource.
-	 *
-	 * @return True or false telling if the last application of this action
-	 *     changed the name of the resource.
-	 */
-	boolean hadResourceNameChange();
-
-	//
-
-	InputBufferImpl getBuffer();
-	byte[] getInputBuffer();
-	void setInputBuffer(byte[] inputBuffer);
 }

@@ -21,6 +21,7 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -40,6 +41,7 @@ import org.eclipse.transformer.TransformerLoggerFactory.LoggerProperty;
 import org.eclipse.transformer.action.ActionType;
 import org.eclipse.transformer.action.BundleData;
 import org.eclipse.transformer.action.impl.ActionImpl;
+import org.eclipse.transformer.action.impl.ChangesImpl;
 import org.eclipse.transformer.action.impl.ClassActionImpl;
 import org.eclipse.transformer.action.impl.CompositeActionImpl;
 import org.eclipse.transformer.action.impl.DirectoryActionImpl;
@@ -57,6 +59,9 @@ import org.eclipse.transformer.action.impl.TextActionImpl;
 import org.eclipse.transformer.action.impl.WarActionImpl;
 // import org.eclipse.transformer.action.impl.XmlActionImpl;
 import org.eclipse.transformer.action.impl.ZipActionImpl;
+import org.eclipse.transformer.report.TransformReport;
+import org.eclipse.transformer.report.impl.ListReport;
+import org.eclipse.transformer.report.impl.PackageReport;
 import org.eclipse.transformer.util.FileUtils;
 
 import aQute.lib.io.IO;
@@ -72,6 +77,7 @@ public class Transformer {
     public static final int TRANSFORM_ERROR_RC = 3;
     public static final int FILE_TYPE_ERROR_RC = 4;
     public static final int LOGGER_SETTINGS_ERROR_RC = 5;
+    public static final int REPORT_ERROR_RC = 6;
 
     public static String[] RC_DESCRIPTIONS = new String[] {
         "Success",
@@ -201,6 +207,7 @@ public class Transformer {
                 Builder builder = Option.builder( optionSettings.getShortTag() );
                 builder.longOpt( optionSettings.getLongTag() );
                 builder.desc( optionSettings.getDescription() );
+
                 if ( optionSettings.getHasArgs() ) {
                     builder.hasArg(false);
                     builder.hasArgs();
@@ -234,6 +241,46 @@ public class Transformer {
 
     public static final String USAGE_SHORT_TAG = "-u";
     public static final String USAGE_LONG_TAG = "--usage";
+
+    public static enum ReportType {
+    	LIST_REPORT("list"),
+    	PACKAGE_REPORT("package");
+
+    	private ReportType(String tag) {
+    		this.optionTag = tag;
+    	}
+
+    	private final String optionTag;
+
+    	public String getTag() {
+    		return optionTag;
+    	}
+
+		public TransformReport create(
+			Logger logger, boolean isTerse, boolean isVerbose,
+			String reportPath) throws TransformException {
+
+			TransformReport report;
+
+			switch ( this ) {
+				case LIST_REPORT:
+					report = new ListReport(logger, isTerse, isVerbose);
+					break;
+				
+				case PACKAGE_REPORT:
+					report = new PackageReport(logger, isTerse, isVerbose);
+					break;
+
+				default:
+					throw new TransformException("Incomplete report implementation [ " + this + " ]");
+			}
+
+			report.setOutput(reportPath); // throws TransformException
+			report.init(); // throws TransformException
+
+			return report;
+		}
+    }
 
     public static enum AppOption {
         USAGE  ("u", "usage", "Display usage",
@@ -293,6 +340,10 @@ public class Transformer {
 //        RULES_MASTER_XML("tf", "xml", "Map of XML filenames to property files",
 //            OptionSettings.HAS_ARG, !OptionSettings.HAS_ARGS,
 //            !OptionSettings.IS_REQUIRED, OptionSettings.NO_GROUP),
+
+        REPORT("r", "report", "Generate report",
+            !OptionSettings.HAS_ARG, OptionSettings.HAS_ARGS,
+            !OptionSettings.IS_REQUIRED, OptionSettings.NO_GROUP),
 
         INVERT("i", "invert", "Invert transformation rules",
                !OptionSettings.HAS_ARG, !OptionSettings.HAS_ARGS,
@@ -633,8 +684,14 @@ public class Transformer {
             helpWriter.println();
             helpWriter.println("Logging Properties:");
             for ( TransformerLoggerFactory.LoggerProperty loggerProperty :
-                      TransformerLoggerFactory.LoggerProperty.values() ) {
+                  TransformerLoggerFactory.LoggerProperty.values() ) {
                 helpWriter.println("  [ " + loggerProperty.getPropertyName() + " ]");
+            }
+
+            helpWriter.println();
+            helpWriter.println("Report types:");
+            for ( ReportType reportType : ReportType.values() ) {
+            	helpWriter.println("  [ " + reportType.getTag() + " ]");
             }
 
             helpWriter.flush();
@@ -825,6 +882,8 @@ public class Transformer {
         public String outputName;
         public String outputPath;
         public File outputFile;
+
+        public Map<ReportType, String> reportPaths;
 
         //
 
@@ -1242,6 +1301,69 @@ public class Transformer {
             return true;
         }
 
+        public boolean setReports() {
+            reportPaths = new LinkedHashMap<ReportType, String>();
+
+            String[] reportOptions = getOptionValues(AppOption.REPORT, DO_NORMALIZE);
+
+            // for ( String reportOption : reportOptions ) {
+            //     dual_info("Report option [ %s ]", reportOption);
+            // }
+
+            if ( (reportOptions.length % 2) != 0 ) {
+                dual_error("Each report type must be specified with a report file");
+            	return false;
+            }
+
+            for ( int reportNo = 0; reportNo < reportOptions.length / 2; reportNo++ ) {
+            	String reportTag = reportOptions[ reportNo * 2 ];
+            	String reportPath = reportOptions[ (reportNo * 2) + 1 ];
+
+            	ReportType selectedType = null;
+            	for ( ReportType reportType : ReportType.values() ) {
+            		if ( reportType.getTag().equals(reportTag) ) {
+            			selectedType = reportType;
+            			break;
+            		}
+            	}
+
+            	if ( selectedType == null ) {
+                    dual_error("Unknown report type [ %s ]", reportTag);
+            		return false;
+            	}
+
+            	if ( reportPaths.get(selectedType) != null ) {
+                    dual_error("Duplicate report type [ %s ]", reportTag);
+            		return false;
+            	}
+
+                dual_info("Report [ %s ] will be written to [ %s ]", reportTag, reportPath);
+            	reportPaths.put(selectedType, reportPath);
+            }
+
+            return true;
+        }
+
+        public TransformerState createState() {
+        	return new TransformerState( getLogger(), isTerse, isVerbose );
+        }
+
+        public void createReports(TransformerState state) throws TransformException {
+        	for ( Map.Entry<ReportType, String> reportEntry : reportPaths.entrySet() ) {
+        		ReportType reportType = reportEntry.getKey();
+        		String reportPath = reportEntry.getValue();
+
+        		TransformReport report = reportType.create(
+        			getLogger(), isTerse, isVerbose,
+        			reportPath );
+        		// throws TransformException
+
+        		state.putReport(reportType, report); 
+        	}
+        }
+
+		//
+
         public CompositeActionImpl getRootAction() {
             if ( rootAction == null ) {
                 CompositeActionImpl useRootAction = new CompositeActionImpl(
@@ -1374,26 +1496,26 @@ public class Transformer {
             }
         }
 
-        public void transform()
-            throws TransformException {
+        public void transform(TransformerState state) throws TransformException {
+            acceptedAction.apply(state, inputName, inputFile, outputFile);
 
-            acceptedAction.apply(inputName, inputFile, outputFile);
+            ChangesImpl changes = state.getLastActiveChanges();
 
             if ( isTerse ) {
                 if ( !toSysOut && !toSysErr ) {
-                    acceptedAction.getLastActiveChanges().displayTerse( getSystemOut(), inputPath, outputPath );
+                    changes.displayTerse( getSystemOut(), inputPath, outputPath );
                 }
-                acceptedAction.getLastActiveChanges().displayTerse( getLogger(), inputPath, outputPath );
+                changes.displayTerse( getLogger(), inputPath, outputPath );
             } else if ( isVerbose ) {
                 if ( !toSysOut && !toSysErr ) {
-                    acceptedAction.getLastActiveChanges().displayVerbose( getSystemOut(), inputPath, outputPath );
+                    changes.displayVerbose( getSystemOut(), inputPath, outputPath );
                 }
-                acceptedAction.getLastActiveChanges().displayVerbose( getLogger(), inputPath, outputPath );
+                changes.displayVerbose( getLogger(), inputPath, outputPath );
             } else {
                 if ( !toSysOut && !toSysErr ) {
-                    acceptedAction.getLastActiveChanges().display( getSystemOut(), inputPath, outputPath );
+                    changes.display( getSystemOut(), inputPath, outputPath );
                 }
-                acceptedAction.getLastActiveChanges().display( getLogger(), inputPath, outputPath );
+                changes.display( getLogger(), inputPath, outputPath );
             }
         }
     }
@@ -1436,6 +1558,10 @@ public class Transformer {
             return TRANSFORM_ERROR_RC;
         }
 
+        if ( !options.setReports() ) {
+            return TRANSFORM_ERROR_RC;
+        }
+
         boolean loadedRules;
         try {
             loadedRules = options.setRules();
@@ -1451,19 +1577,36 @@ public class Transformer {
             options.logRules();
         }
 
+        TransformerState state = options.createState();
+
+        try {
+        	options.createReports(state);
+        } catch ( TransformException e ) {
+            dual_error("Report initialization failure:", e);
+        	return REPORT_ERROR_RC;
+        }
+
         if ( !options.acceptAction() ) {
             dual_error("No action selected");
             return FILE_TYPE_ERROR_RC;
         }
 
         try {
-            options.transform(); // throws JakartaTransformException
+            options.transform(state); // throws JakartaTransformException
         } catch ( TransformException e ) {
             dual_error("Transform failure:", e);
             return TRANSFORM_ERROR_RC;
         } catch ( Throwable th) {
             dual_error("Unexpected failure:", th);
             return TRANSFORM_ERROR_RC;
+        }
+
+        try {
+    		state.completeReports(); // throws TransformException
+    		state.emitReports(); // throws IOException
+        } catch ( Exception e ) {
+            dual_error("Report completion failure:", e);
+        	return REPORT_ERROR_RC;
         }
 
         return SUCCESS_RC;

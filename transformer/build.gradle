@@ -38,6 +38,10 @@ dependencies {
   testImplementation 'jakarta.management.j2ee:jakarta.management.j2ee-api:1.1.4'
 }
 
+// To invoke from the command line using gradle:
+//   ../gradle run --args=""
+//   ../gradlew run --args=""
+
 application {
   mainClassName = 'org.eclipse.transformer.jakarta.JakartaTransformer'
 }

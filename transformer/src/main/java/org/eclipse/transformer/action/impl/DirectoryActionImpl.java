@@ -14,7 +14,7 @@ package org.eclipse.transformer.action.impl;
 import java.io.File;
 
 import org.eclipse.transformer.TransformException;
-import org.eclipse.transformer.action.Action;
+import org.eclipse.transformer.TransformerState;
 import org.eclipse.transformer.action.ActionType;
 import org.slf4j.Logger;
 
@@ -56,19 +56,22 @@ public class DirectoryActionImpl extends ContainerActionImpl {
 	}
 
     @Override
-	public void apply(String inputPath, File inputFile, File outputFile)
+	public void apply(
+		TransformerState state,
+		String inputPath, File inputFile, File outputFile)
 		throws TransformException {
 
-    	startRecording(inputPath);
+    	startRecording(state, inputPath);
     	try {
-    		setResourceNames(inputPath, inputPath);
-    		transform(".", inputFile, outputFile);
+    		setResourceNames(state, inputPath, inputPath);
+    		transform(state, ".", inputFile, outputFile);
     	} finally {
-    		stopRecording(inputPath);
+    		stopRecording(state, inputPath);
     	}
 	}
 
 	protected void transform(
+		TransformerState state,
 		String inputPath, File inputFile,
 		File outputFile)  throws TransformException {
 
@@ -91,18 +94,18 @@ public class DirectoryActionImpl extends ContainerActionImpl {
 
 	    	for ( File childInputFile : inputFile.listFiles() ) {
 	    		File childOutputFile = new File( outputFile, childInputFile.getName() );
-	    		transform(inputPath, childInputFile, childOutputFile);
+	    		transform(state, inputPath, childInputFile, childOutputFile);
 	    	}
 
 	    } else {
-	    	Action selectedAction = acceptAction(inputPath, inputFile);
+	    	ActionImpl selectedAction = acceptAction(inputPath, inputFile);
 	    	if ( selectedAction == null ) {
-	    		recordUnaccepted(inputPath);
+	    		recordUnaccepted(state, inputPath);
 	    	} else if ( !select(inputPath) ) {
-	    		recordUnselected(selectedAction, inputPath);
+	    		recordUnselected(state, selectedAction, inputPath);
 	    	} else {
-	    		selectedAction.apply(inputPath, inputFile, outputFile);
-	    		recordTransform(selectedAction, inputPath);
+	    		selectedAction.apply(state, inputPath, inputFile, outputFile);
+	    		recordTransform(state, selectedAction, inputPath);
 	    	}
 	    }
 	}

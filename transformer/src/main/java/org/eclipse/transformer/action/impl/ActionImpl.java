@@ -15,11 +15,10 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 
 import org.eclipse.transformer.TransformException;
+import org.eclipse.transformer.TransformerState;
 import org.eclipse.transformer.action.Action;
 import org.eclipse.transformer.action.BundleData;
 import org.eclipse.transformer.action.SignatureRule.SignatureType;
@@ -42,7 +41,7 @@ import aQute.bnd.signatures.TypeArgument;
 import aQute.bnd.signatures.TypeParameter;
 import aQute.lib.io.IO;
 
-public abstract class ActionImpl implements Action {
+public abstract class ActionImpl implements Action {	
 	public ActionImpl(
 		Logger logger, boolean isTerse, boolean isVerbose,
 		InputBufferImpl buffer, SelectionRuleImpl selectionRule, SignatureRuleImpl signatureRule) {
@@ -55,11 +54,6 @@ public abstract class ActionImpl implements Action {
 
 		this.selectionRule = selectionRule;
 		this.signatureRule = signatureRule;
-
-		this.changes = new ArrayList<ChangesImpl>();
-		this.numActiveChanges = 0;
-		this.activeChanges = null;
-		this.lastActiveChanges = null;
 	}
 
 	//
@@ -146,18 +140,15 @@ public abstract class ActionImpl implements Action {
 
 	private final InputBufferImpl buffer;
 
-	@Override
-	public InputBufferImpl getBuffer() {
+	protected InputBufferImpl getBuffer() {
 		return buffer;
 	}
 
-	@Override
-	public byte[] getInputBuffer() {
+	protected byte[] getInputBuffer() {
 		return getBuffer().getInputBuffer();
 	}
 
-	@Override
-	public void setInputBuffer(byte[] inputBuffer) {
+	protected void setInputBuffer(byte[] inputBuffer) {
 		getBuffer().setInputBuffer(inputBuffer);
 	}
 
@@ -317,31 +308,48 @@ public abstract class ActionImpl implements Action {
 		return new ChangesImpl();
 	}
 
-	protected final List<ChangesImpl> changes;
-	protected int numActiveChanges; 
-	protected ChangesImpl activeChanges;
-	protected ChangesImpl lastActiveChanges;
+	protected ChangesImpl getActiveChanges(TransformerState state) {
+		return state.getActiveChanges();
+	}
 
-	protected void startRecording(String inputName) {
+	protected boolean hasNonResourceNameChanges(TransformerState state) {
+		return getActiveChanges(state).hasNonResourceNameChanges();
+	}
+
+	protected void setResourceNames(TransformerState state, String inputName, String outputName) {
+		getActiveChanges(state).setResourceNames(inputName, outputName);
+	}
+
+	protected void addReplacement(TransformerState state) {
+		getActiveChanges(state).addReplacement();
+	}
+
+	protected void addReplacements(TransformerState state, int count) {
+		getActiveChanges(state).addReplacements(count);
+	}
+
+	protected ChangesImpl getLastActiveChanges(TransformerState state) {
+		return state.getLastActiveChanges();
+	}
+
+	//
+
+	protected void startRecording(TransformerState state, String inputName) {
 		if ( getIsVerbose() ) {
 			info("Start processing [ {} ] using [ {} ]", inputName, getActionType() );
 		}
 
-		if ( numActiveChanges == changes.size() ) {
-			changes.add( activeChanges = newChanges() );
-		} else {
-			activeChanges = changes.get(numActiveChanges);
-			activeChanges.clearChanges();
-		}
-		numActiveChanges++;
+		state.pushAction(this);
+		state.pushChanges( () -> newChanges() );
+		state.begin(this, inputName);
 	}
 
-	protected void stopRecording(String inputName) {
+	protected void stopRecording(TransformerState state, String inputName) {
 		if ( getIsVerbose() ) {
 			String changeText;
 
-			boolean nameChanged = activeChanges.hasResourceNameChange();
-			boolean contentChanged = activeChanges.hasNonResourceNameChanges();
+			boolean nameChanged = state.hasResourceNameChange();
+			boolean contentChanged = state.hasNonResourceNameChanges();
 
 			if ( nameChanged && contentChanged ) {
 				changeText = "Name and content changes";
@@ -358,76 +366,9 @@ public abstract class ActionImpl implements Action {
 				changeText);
 		}
 
-		lastActiveChanges = activeChanges;
-
-		numActiveChanges--;
-		if ( numActiveChanges == 0) {
-			activeChanges = null;
-		} else {
-			activeChanges = changes.get(numActiveChanges);
-		}
-	}
-
-	//
-
-	@Override
-	public ChangesImpl getActiveChanges() {
-		return activeChanges;
-	}
-
-	protected void setResourceNames(String inputResourceName, String outputResourceName) {
-		ChangesImpl useChanges = getActiveChanges();
-		useChanges.setInputResourceName(inputResourceName);
-		useChanges.setOutputResourceName(outputResourceName);
-	}
-
-	@Override
-	public void addReplacement() {
-		getActiveChanges().addReplacement();
-	}
-
-	@Override
-	public void addReplacements(int additions) {
-		getActiveChanges().addReplacements(additions);
-	}
-
-	//
-
-	@Override
-	public boolean hasChanges() {
-		return getActiveChanges().hasChanges();
-	}
-
-	@Override
-	public boolean hasResourceNameChange() {
-		return getActiveChanges().hasResourceNameChange();
-	}
-
-	@Override
-	public boolean hasNonResourceNameChanges() {
-		return getActiveChanges().hasNonResourceNameChanges();
-	}
-
-	//
-
-	@Override
-	public ChangesImpl getLastActiveChanges() {
-		return lastActiveChanges;
-	}
-
-	@Override
-	public boolean hadChanges() {
-		return getLastActiveChanges().hasChanges();
-	}
-
-	@Override
-	public boolean hadResourceNameChange() {
-		return getLastActiveChanges().hasResourceNameChange();
-	}
-
-	@Override
-	public boolean hadNonResourceNameChanges() {
-		return getLastActiveChanges().hasNonResourceNameChanges();
+		state.end( this, state.getActiveChanges() );
+		state.popChanges();
+		state.popAction();
 	}
 
 	//
@@ -491,25 +432,31 @@ public abstract class ActionImpl implements Action {
 	//
 
 	@Override
-	public InputStreamData apply(String inputName, InputStream inputStream)
+	public InputStreamData apply(
+		TransformerState state,
+		 String inputName, InputStream inputStream)
 		throws TransformException {
 
-		return apply(inputName, inputStream, InputStreamData.UNKNOWN_LENGTH); // throws JakartaTransformException
+		return apply(state, inputName, inputStream, InputStreamData.UNKNOWN_LENGTH); // throws JakartaTransformException
 	}
 
 	@Override
-	public InputStreamData apply(String inputName, InputStream inputStream, int inputCount)
+	public InputStreamData apply(
+		TransformerState state,
+		String inputName, InputStream inputStream, int inputCount)
 		throws TransformException {
 
-		startRecording(inputName);
+		startRecording(state, inputName);
 		try {
-			return basicApply(inputName, inputStream, inputCount); // throws TransformException {
+			return basicApply(state, inputName, inputStream, inputCount); // throws TransformException {
 		} finally {
-			stopRecording(inputName);
+			stopRecording(state, inputName);
 		}
 	}
 	
-	public InputStreamData basicApply(String inputName, InputStream inputStream, int inputCount)
+	public InputStreamData basicApply(
+		TransformerState state,
+		String inputName, InputStream inputStream, int inputCount)
 		throws TransformException {
 
 		String className = getClass().getSimpleName();
@@ -521,7 +468,7 @@ public abstract class ActionImpl implements Action {
 
 		ByteData outputData;
 		try {
-			outputData = apply(inputName, inputData.data, inputData.length);
+			outputData = apply( state, inputName, inputData.data, inputData.length);
 			// throws JakartaTransformException
 		} catch ( Throwable th ) {
 			error("Transform failure [ {} ]", th, inputName);
@@ -533,8 +480,8 @@ public abstract class ActionImpl implements Action {
 			outputData = inputData;
 		} else {
 			debug( "[ {}.{} ]: Active transform [ {} ] [ {} ] [ {} ]",
-				   className, methodName,
-				   outputData.name, outputData.length, outputData.data );
+				className, methodName,
+				outputData.name, outputData.length, outputData.data );
 		}
 
 		return new InputStreamData(outputData);
@@ -542,18 +489,21 @@ public abstract class ActionImpl implements Action {
 
 	@Override
 	public void apply(
+		TransformerState state,
 		String inputName, InputStream inputStream, long inputCount,
 		OutputStream outputStream) throws TransformException {
 
-		startRecording(inputName);
+		startRecording(state, inputName);
 		try {
-			basicApply(inputName, inputStream, inputCount, outputStream); // throws TransformException
+			basicApply(state, inputName, inputStream, inputCount, outputStream);
+			// throws TransformException
 		} finally {
-			stopRecording(inputName);
+			stopRecording(state, inputName);
 		}
 	}
 
 	public void basicApply(
+		TransformerState state,
 		String inputName, InputStream inputStream, long inputCount,
 		OutputStream outputStream) throws TransformException {
 
@@ -568,7 +518,7 @@ public abstract class ActionImpl implements Action {
 
 		ByteData outputData;
 		try {
-			outputData = apply(inputName, inputData.data, inputData.length);
+			outputData = apply(state, inputName, inputData.data, inputData.length);
 			// throws JakartaTransformException
 		} catch ( Throwable th ) {
 			error("Transform failure [ {} ]", th, inputName);
@@ -586,26 +536,31 @@ public abstract class ActionImpl implements Action {
 		write(outputData, outputStream); // throws JakartaTransformException		
 	}
 
-	protected abstract ByteData apply(String inputName, byte[] inputBytes, int inputLength) 
+	protected abstract ByteData apply(
+		TransformerState state,
+		String inputName, byte[] inputBytes, int inputLength) 
 		throws TransformException;
 
     @Override
-	public void apply(String inputName, File inputFile, File outputFile)
-		throws TransformException {
+	public void apply(
+		TransformerState state,
+		String inputName, File inputFile, File outputFile)
+			throws TransformException {
 
 		long inputLength = inputFile.length();
         debug("Input [ {} ] Length [ {} ]", inputName, inputLength);
 
-		InputStream inputStream = openInputStream(inputFile);
+		InputStream inputStream = openInputStream(inputFile); // throws TransformException
 		try {
-			OutputStream outputStream = openOutputStream(outputFile);
+			OutputStream outputStream = openOutputStream(outputFile); // throws TransformException
 			try {
-				apply(inputName, inputStream, inputLength, outputStream);
+				apply(state, inputName, inputStream, inputLength, outputStream);
+				// throws TransformException
 			} finally {
-				closeOutputStream(outputFile, outputStream);
+				closeOutputStream(outputFile, outputStream); // throws TransformException
 			}
 		} finally {
-			closeInputStream(inputFile, inputStream);
+			closeInputStream(inputFile, inputStream); // throws TransformException
 		}
 	}
 

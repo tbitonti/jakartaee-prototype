@@ -15,11 +15,6 @@ import java.io.File;
 import java.util.List;
 
 public interface ContainerAction extends Action {
-	@Override
-	ContainerChanges getActiveChanges();
-	@Override
-	ContainerChanges getLastActiveChanges();
-
 	CompositeAction getAction();
 	List<? extends Action> getActions();
 

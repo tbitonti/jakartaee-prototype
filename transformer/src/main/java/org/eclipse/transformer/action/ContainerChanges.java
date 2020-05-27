@@ -14,6 +14,8 @@ package org.eclipse.transformer.action;
 import java.util.Map;
 import java.util.Set;
 
+import org.eclipse.transformer.TransformerState;
+
 public interface ContainerChanges extends Changes {
 	int getAllResources();
 
@@ -36,19 +38,6 @@ public interface ContainerChanges extends Changes {
 
 	//
 
-	void add(ContainerChanges otherChanges);
-
 	boolean hasNestedChanges();
 	ContainerChanges getNestedChanges();
-	void addNested(ContainerChanges otherChanges);
-
-	//
-
-	void record();
-
-	boolean HAS_CHANGES = true;
-
-	void record(Action action);
-	void record(Action action, boolean hasChanges);
-	void record(String name, boolean hasChanges);
 }

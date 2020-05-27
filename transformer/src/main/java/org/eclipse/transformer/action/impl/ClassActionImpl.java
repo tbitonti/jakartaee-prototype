@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.ListIterator;
 
 import org.eclipse.transformer.TransformException;
+import org.eclipse.transformer.TransformerState;
 import org.eclipse.transformer.action.ActionType;
 import org.eclipse.transformer.action.SignatureRule;
 import org.eclipse.transformer.action.SignatureRule.SignatureType;
@@ -235,45 +236,51 @@ public class ClassActionImpl extends ActionImpl {
 	}
 
 	@Override
-	public ClassChangesImpl getLastActiveChanges() {
-		return (ClassChangesImpl) super.getLastActiveChanges();
+	public ClassChangesImpl getLastActiveChanges(TransformerState state) {
+		return (ClassChangesImpl) super.getLastActiveChanges(state);
 	}
 
 	@Override
-	public ClassChangesImpl getActiveChanges() {
-		return (ClassChangesImpl) super.getActiveChanges();
+	public ClassChangesImpl getActiveChanges(TransformerState state) {
+		return (ClassChangesImpl) super.getActiveChanges(state);
 	}
 
-	protected void setClassNames(String inputClassName, String outputClassName) {
-		ClassChangesImpl useChanges = getActiveChanges();
+	protected void setClassNames(
+		TransformerState state,
+		String inputClassName, String outputClassName) {
+
+		ClassChangesImpl useChanges = getActiveChanges(state);
 		useChanges.setInputClassName(inputClassName);
 		useChanges.setOutputClassName(outputClassName);
 	}
 
-	protected void setSuperClassNames(String inputSuperName, String outputSuperName) {
-		ClassChangesImpl useChanges = getActiveChanges();
+	protected void setSuperClassNames(
+		TransformerState state,
+		String inputSuperName, String outputSuperName) {
+
+		ClassChangesImpl useChanges = getActiveChanges(state);
 		useChanges.setInputSuperName(inputSuperName);
 		useChanges.setOutputSuperName(outputSuperName);
 	}	
 
-	protected void addModifiedInterface() {
-		getActiveChanges().addModifiedInterface();
+	protected void addModifiedInterface(TransformerState state) {
+		getActiveChanges(state).addModifiedInterface();
 	}
 
-	protected void addModifiedField() {
-		getActiveChanges().addModifiedField();
+	protected void addModifiedField(TransformerState state) {
+		getActiveChanges(state).addModifiedField();
 	}
 
-	protected void addModifiedMethod() {
-		getActiveChanges().addModifiedMethod();
+	protected void addModifiedMethod(TransformerState state) {
+		getActiveChanges(state).addModifiedMethod();
 	}
 
-	protected void addModifiedAttribute() {
-		getActiveChanges().addModifiedAttribute();
+	protected void addModifiedAttribute(TransformerState state) {
+		getActiveChanges(state).addModifiedAttribute();
 	}
 
-	protected void setModifiedConstants(int modifiedConstants) {
-		getActiveChanges().setModifiedConstants(modifiedConstants);
+	protected void setModifiedConstants(TransformerState state, int modifiedConstants) {
+		getActiveChanges(state).setModifiedConstants(modifiedConstants);
 	}
 
 	//
@@ -286,7 +293,10 @@ public class ClassActionImpl extends ActionImpl {
 	//
 
 	@Override
-	public ByteData apply(String inputName, byte[] inputBytes, int inputLength)
+	public ByteData apply(
+		TransformerState state,
+		String inputName, byte[] inputBytes, int inputLength)
+
 		throws TransformException {
 
 		debug("Read [ {} ] Bytes [ {} ]", inputName, inputLength);
@@ -339,8 +349,8 @@ public class ClassActionImpl extends ActionImpl {
 			outputName = inputName;
 		}
 
-		setClassNames(inputClassName, outputClassName);
-		setResourceNames(inputName, outputName);
+		setClassNames(state, inputClassName, outputClassName);
+		setResourceNames(state, inputName, outputName);
 
 		debug("{}", classBuilder);
 
@@ -353,7 +363,7 @@ public class ClassActionImpl extends ActionImpl {
 				outputSuperName = inputSuperName;
 			}
 
-			setSuperClassNames(inputSuperName, outputSuperName);
+			setSuperClassNames(state, inputSuperName, outputSuperName);
 
 			if ( !outputSuperName.equals("java/lang/Object") ) {
 			    debug("  extends {}", outputSuperName);
@@ -367,7 +377,7 @@ public class ClassActionImpl extends ActionImpl {
 				String interfaceName = transformBinaryType( interfaceNames.next() );
 				if ( interfaceName != null ) {
 					interfaceNames.set(interfaceName);
-					addModifiedInterface();
+					addModifiedInterface(state);
 				}
 			}
 
@@ -385,7 +395,7 @@ public class ClassActionImpl extends ActionImpl {
 			FieldInfo outputField = transform( inputField, FieldInfo::new, SignatureType.FIELD );
 			if ( outputField != null ) {
 				fields.set(outputField);
-				addModifiedField();
+				addModifiedField(state);
 				debug("       {}    -> {}", inputField, outputField);
 
 				verbose("Field {} -> {}", inputField, outputField);
@@ -401,7 +411,7 @@ public class ClassActionImpl extends ActionImpl {
 			MethodInfo outputMethod = transform( inputMethod, MethodInfo::new, SignatureType.METHOD );
 			if ( outputMethod != null ) {
 				methods.set(outputMethod);
-				addModifiedMethod();
+				addModifiedMethod(state);
 				debug( "       {}    -> {}", inputMethod, outputMethod);
 
 				verbose("Method {} -> {}", inputMethod, outputMethod);
@@ -421,7 +431,7 @@ public class ClassActionImpl extends ActionImpl {
 			Attribute outputAttribute = transform(inputAttribute, SignatureType.CLASS);
 			if ( outputAttribute != null ) {
 				attributes.set(outputAttribute);
-				addModifiedAttribute();
+				addModifiedAttribute(state);
 				debug("       {}    -> {}", inputAttribute, outputAttribute);
 				verbose("Attribute {} -> {}", inputAttribute, outputAttribute);
 			}
@@ -432,10 +442,10 @@ public class ClassActionImpl extends ActionImpl {
 
 		int modifiedConstants = transform(constants);
 		if ( modifiedConstants > 0 ) {
-			setModifiedConstants(modifiedConstants);
+			setModifiedConstants(state, modifiedConstants);
 		}
 
-		if ( !hasNonResourceNameChanges() ) {
+		if ( !hasNonResourceNameChanges(state) ) {
 			verbose("  Class bytes: {} {}", inputName, inputLength);
 			return null;
 		}

@@ -88,7 +88,7 @@ class TestCommandLine {
         assertTrue(options.acceptAction(), "options.acceptAction() failed");
         assertEquals(actionClassName, options.acceptedAction.getClass().getName());
 
-        options.transform();
+        options.transform( options.createState() );
         assertTrue( (new File(outputFileName)).exists(), "output file not created" );
     }
     

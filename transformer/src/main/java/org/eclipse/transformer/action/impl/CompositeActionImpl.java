@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.eclipse.transformer.TransformException;
+import org.eclipse.transformer.TransformerState;
 import org.eclipse.transformer.action.ActionType;
 import org.eclipse.transformer.action.CompositeAction;
 import org.eclipse.transformer.util.ByteData;
@@ -55,13 +56,13 @@ public class CompositeActionImpl extends ActionImpl implements CompositeAction {
 	}
 
 	@Override
-	public ChangesImpl getLastActiveChanges() {
-		return ( (acceptedAction == null) ? null : acceptedAction.getLastActiveChanges() );
+	public ChangesImpl getLastActiveChanges(TransformerState state) {
+		return ( (acceptedAction == null) ? null : acceptedAction.getLastActiveChanges(state) );
 	}
 
 	@Override
-	public ChangesImpl getActiveChanges() {
-		return ( (acceptedAction == null) ? null : acceptedAction.getActiveChanges() );
+	public ChangesImpl getActiveChanges(TransformerState state) {
+		return ( (acceptedAction == null) ? null : acceptedAction.getActiveChanges(state) );
 	}
 
 	@Override
@@ -114,9 +115,11 @@ public class CompositeActionImpl extends ActionImpl implements CompositeAction {
 	//
 
 	@Override
-	public ByteData apply(String inputName, byte[] inputBytes, int inputLength)
+	public ByteData apply(
+		TransformerState state,
+		String inputName, byte[] inputBytes, int inputLength)	
 		throws TransformException {
 
-		return getAcceptedAction().apply(inputName, inputBytes, inputLength);
+		return getAcceptedAction().apply(state, inputName, inputBytes, inputLength);
 	}
 }

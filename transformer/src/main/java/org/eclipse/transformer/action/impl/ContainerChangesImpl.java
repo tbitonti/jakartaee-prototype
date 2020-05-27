@@ -18,6 +18,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.eclipse.transformer.TransformerState;
 import org.eclipse.transformer.action.Action;
 import org.eclipse.transformer.action.ContainerChanges;
 import org.slf4j.Logger;
@@ -153,20 +154,20 @@ public class ContainerChangesImpl extends ChangesImpl implements ContainerChange
 		return ( (changes == null) ? 0 : changes[0] );
 	}
 
-	@Override
-	public void record(Action action) {
-		record( action.getName(), action.hadChanges() );
 
-		action.getLastActiveChanges().addNestedInto(this);
+	protected static final boolean HAS_CHANGES = true;
+
+	protected void record(TransformerState state, ActionImpl action) {
+		ChangesImpl changes = action.getLastActiveChanges(state);
+		record( action.getName(), changes.hasChanges() );
+		changes.addNestedInto(this);
 	}
 
-	@Override
-	public void record(Action action, boolean hasChanges) {
+	protected void record(Action action, boolean hasChanges) {
 		record( action.getName(), hasChanges );
 	}
 
-	@Override
-	public void record(String name, boolean hasChanges) {
+	protected void record(String name, boolean hasChanges) {
 		allResources++;
 		allSelected++;
 
@@ -188,14 +189,12 @@ public class ContainerChangesImpl extends ChangesImpl implements ContainerChange
 		}
 	}
 
-	@Override
-	public void record() {
+	protected void record() {
 		allResources++;
 		allUnselected++;
 	}
 
-	@Override
-	public void addNestedInto(ContainerChanges containerChanges) {
+	protected void addNestedInto(ContainerChangesImpl containerChanges) {
 		containerChanges.addNested(this);
 	}
 
@@ -221,21 +220,19 @@ public class ContainerChangesImpl extends ChangesImpl implements ContainerChange
 	 *
 	 * @param otherChanges Other container changes to add as nested changes.
 	 */
-	@Override
-	public void addNested(ContainerChanges otherChanges) {
+	protected void addNested(ContainerChangesImpl otherChanges) {
 		if ( allNestedChanges == null ) {
 			allNestedChanges = new ContainerChangesImpl();
 		}
 		allNestedChanges.add(otherChanges);
 
-		ContainerChanges otherNestedChanges = otherChanges.getNestedChanges();
+		ContainerChangesImpl otherNestedChanges = otherChanges.getNestedChanges();
 		if ( otherNestedChanges != null ) {
 			allNestedChanges.add(otherNestedChanges);
 		}
 	}
 
-	@Override
-	public void add(ContainerChanges otherChanges) {
+	protected void add(ContainerChangesImpl otherChanges) {
 		addChangeMap( this.changedByAction, otherChanges.getChangedByAction() );
 		addChangeMap( this.unchangedByAction, otherChanges.getUnchangedByAction() );
 

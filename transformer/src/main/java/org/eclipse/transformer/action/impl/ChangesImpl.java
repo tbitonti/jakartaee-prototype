@@ -18,6 +18,7 @@ import org.eclipse.transformer.action.ContainerChanges;
 import org.slf4j.Logger;
 
 public class ChangesImpl implements Changes {
+
 	public ChangesImpl() {
 		// Empty
 	}
@@ -58,6 +59,12 @@ public class ChangesImpl implements Changes {
 	@Override
 	public void setOutputResourceName(String outputResourceName) {
 		this.outputResourceName = outputResourceName;
+	}
+
+	@Override
+	public void setResourceNames(String inputResourceName, String outputResourceName) {
+		setInputResourceName(inputResourceName);
+		setOutputResourceName(outputResourceName);
 	}
 
 	@Override

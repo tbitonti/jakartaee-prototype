@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.eclipse.transformer.TransformException;
+import org.eclipse.transformer.TransformerState;
 import org.eclipse.transformer.action.BundleData;
 import org.eclipse.transformer.action.impl.BundleDataImpl;
 import org.eclipse.transformer.action.impl.InputBufferImpl;
@@ -319,7 +320,7 @@ public class TestTransformManifest extends CaptureTest {
 	public void testTransform(
 		String inputPath,
 		Occurrences[] occurrences, String[][] identityUpdates,
-		ManifestActionImpl manifestAction)
+		TransformerState state, ManifestActionImpl manifestAction)
 		throws TransformException, IOException {
 
 		System.out.println("Transform [ " + inputPath + " ] using [ " + manifestAction.getName() + " ] ...");
@@ -336,7 +337,8 @@ public class TestTransformManifest extends CaptureTest {
 
 		InputStreamData manifestOutput;
 		try ( InputStream input = TestUtils.getResourceStream(inputPath) ) { // throws IOException
-			manifestOutput = manifestAction.apply(inputPath, input); // throws JakartaTransformException
+			manifestOutput = manifestAction.apply(state, inputPath, input);
+			// throws JakartaTransformException
 		}
 
 		List<String> outputLines = displayManifest(inputPath, manifestOutput.stream);
@@ -463,7 +465,7 @@ public class TestTransformManifest extends CaptureTest {
 		testTransform(
 			TEST_MANIFEST_PATH_WEBCONTAINER,
 			MANIFEST_TO_JAKARTA_DATA, WEBCONTAINER_BUNDLE_OUTPUT,
-			getJakartaManifestAction());
+			createTransformerState(), getJakartaManifestAction());
 		// throws JakartaTransformException, IOException
 	}
 
@@ -472,7 +474,7 @@ public class TestTransformManifest extends CaptureTest {
 		testTransform(
 			TEST_FEATURE_PATH,
 			FEATURE_TO_JAKARTA_DATA, null,
-			getJakartaFeatureAction());
+			createTransformerState(), getJakartaFeatureAction());
 		// throws JakartaTransformException, IOException
 	}
 
@@ -499,7 +501,7 @@ public class TestTransformManifest extends CaptureTest {
 		testTransform(
 			TEST_MANIFEST_PATH_TX,
 			MANIFEST_TO_JAKARTA_DATA_TX, TRANSACTION_BUNDLE_OUTPUT,
-			getJakartaManifestActionTx());
+			createTransformerState(), getJakartaManifestActionTx());
 
 		// throws JakartaTransformException, IOException
 	}

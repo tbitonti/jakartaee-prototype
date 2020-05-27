@@ -14,6 +14,7 @@ package org.eclipse.transformer.action.impl;
 import java.io.File;
 
 import org.eclipse.transformer.TransformException;
+import org.eclipse.transformer.TransformerState;
 import org.eclipse.transformer.action.ActionType;
 import org.eclipse.transformer.util.ByteData;
 import org.slf4j.Logger;
@@ -53,10 +54,13 @@ public class NullActionImpl extends ActionImpl {
 	}
 
 	@Override
-	public ByteData apply(String inputName, byte[] inputBytes, int inputLength)
+	public ByteData apply(
+		TransformerState state,
+		String inputName, byte[] inputBytes, int inputLength)
 		throws TransformException {
 
-		setResourceNames(inputName, inputName);
+		setResourceNames(state, inputName, inputName);
+
 		return new ByteData(inputName, inputBytes, 0, inputLength);
 	}
 }

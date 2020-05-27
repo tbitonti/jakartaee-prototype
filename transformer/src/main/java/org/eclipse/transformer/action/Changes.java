@@ -22,17 +22,27 @@ public interface Changes {
 	String getOutputResourceName();
 	void setOutputResourceName(String outputResourceName);
 
+	void setResourceNames(String inputResourceName, String outputResourceName);
+
+	//
+
 	int getReplacements();
 	void addReplacement();
 	void addReplacements(int additions);
 
+	//
+
 	void addNestedInto(ContainerChanges containerChanges);
+
+	//
 
 	boolean hasChanges();
 	boolean hasNonResourceNameChanges();
 	boolean hasResourceNameChange();
 
 	void clearChanges();
+
+	//
 
 	void displayVerbose(PrintStream printStream, String inputPath, String outputPath);
 	void displayVerbose(Logger logger, String inputPath, String outputPath);

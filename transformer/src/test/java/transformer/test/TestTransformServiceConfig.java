@@ -22,6 +22,7 @@ import java.util.Set;
 
 import org.eclipse.transformer.TransformException;
 import org.eclipse.transformer.TransformProperties;
+import org.eclipse.transformer.TransformerState;
 import org.eclipse.transformer.action.BundleData;
 import org.eclipse.transformer.action.impl.SelectionRuleImpl;
 import org.eclipse.transformer.action.impl.ServiceLoaderConfigActionImpl;
@@ -148,41 +149,44 @@ public class TestTransformServiceConfig extends CaptureTest {
 
 	@Test
 	public void testJakartaTransform() throws IOException, TransformException {
+		TransformerState state = createTransformerState();
 		ServiceLoaderConfigActionImpl jakartaAction = getJakartaServiceAction();
 
 		verifyTransform(
-			jakartaAction,
+			state, jakartaAction,
 			JAVAX_OTHER_READER_SERVICE_PATH,
 			JAVAX_OTHER_READER_LINES); // Not transformed 
 		verifyTransform(
-			jakartaAction,
+			state, jakartaAction,
 			JAVAX_SAMPLE_READER_SERVICE_PATH,
 			JAKARTA_SAMPLE_READER_LINES); // Transformed
 		verifyTransform(
-			jakartaAction,
+			state, jakartaAction,
 			JAVAX_SAMPLE_READER_SERVICE_PATH,
 			JAKARTA_SAMPLE_READER_LINES); // Transformed 
 	}
 
 	@Test
 	public void testJavaxTransform() throws IOException, TransformException {
+		TransformerState state = createTransformerState();		
 		ServiceLoaderConfigActionImpl javaxAction = getJavaxServiceAction();
 
 		verifyTransform(
-			javaxAction,
+			state, javaxAction,
 			JAKARTA_OTHER_READER_SERVICE_PATH,
 			JAKARTA_OTHER_READER_LINES); // Not transformed
 		verifyTransform(
-			javaxAction,
+			state, javaxAction,
 			JAKARTA_SAMPLE_READER_SERVICE_PATH,
 			JAVAX_SAMPLE_READER_LINES); // Transformed
 		verifyTransform(
-			javaxAction,
+			state, javaxAction,
 			JAKARTA_SAMPLE_READER_SERVICE_PATH,
 			JAVAX_SAMPLE_READER_LINES); // Transformed
 	}
 
 	protected void verifyTransform(
+		TransformerState state,
 		ServiceLoaderConfigActionImpl action,
 		String inputName,
 		String[] expectedLines) throws IOException, TransformException {
@@ -191,7 +195,7 @@ public class TestTransformServiceConfig extends CaptureTest {
 
 		InputStreamData transformedData;
 		try {
-			transformedData = action.apply(inputName, inputStream);
+			transformedData = action.apply(state, inputName, inputStream);
 		} finally {
 			inputStream.close();
 		}

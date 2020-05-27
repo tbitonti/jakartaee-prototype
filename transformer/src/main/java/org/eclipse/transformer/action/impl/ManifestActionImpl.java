@@ -22,6 +22,7 @@ import java.util.jar.Attributes;
 import java.util.jar.Manifest;
 
 import org.eclipse.transformer.TransformException;
+import org.eclipse.transformer.TransformerState;
 import org.eclipse.transformer.action.ActionType;
 import org.eclipse.transformer.action.BundleData;
 import org.eclipse.transformer.util.ByteData;
@@ -101,7 +102,9 @@ public class ManifestActionImpl extends ActionImpl {
 	//
 
 	@Override
-	public ByteData apply(String initialName, byte[] initialBytes, int initialCount)
+	public ByteData apply(
+		TransformerState state,
+		String initialName, byte[] initialBytes, int initialCount)
 		throws TransformException {
 
 		String className = getClass().getSimpleName();
@@ -109,7 +112,7 @@ public class ManifestActionImpl extends ActionImpl {
 
 		debug("[ {}.{} ]: [ {} ] Initial bytes [ {} ]", className, methodName, initialName, initialCount);
 
-		setResourceNames(initialName, initialName);
+		setResourceNames(state, initialName, initialName);
 
 		ByteData initialData = new ByteData(initialName, initialBytes, 0, initialCount);
 
@@ -123,13 +126,13 @@ public class ManifestActionImpl extends ActionImpl {
 
 		Manifest finalManifest = new Manifest();
 
-		transform(initialName, initialManifest, finalManifest);
+		transform(state, initialName, initialManifest, finalManifest);
 
 		// info("[ {}.{} ]: [ {} ] Replacements [ {} ]",
 		//     getClass().getSimpleName(), "transform",
 		//     initialName, getActiveChanges().getReplacements());
 
-		if ( !hasNonResourceNameChanges() ) {
+		if ( !hasNonResourceNameChanges(state) ) {
 			debug("[ {}.{} ]: [ {} ] Null transform", className, methodName, initialName);
 			return null;
 		}
@@ -148,14 +151,17 @@ public class ManifestActionImpl extends ActionImpl {
 		return new ByteData(initialName, finalBytes); 
 	}
 
-	protected void transform(String inputName, Manifest initialManifest, Manifest finalManifest) {
+	protected void transform(
+		TransformerState state,
+		String inputName, Manifest initialManifest, Manifest finalManifest) {
+
 		Attributes initialMainAttributes = initialManifest.getMainAttributes();
 		Attributes finalMainAttributes = finalManifest.getMainAttributes();
 
-		addReplacements( transformPackages(inputName, "main", initialMainAttributes, finalMainAttributes) );
+		addReplacements( state, transformPackages(inputName, "main", initialMainAttributes, finalMainAttributes) );
 
 		if ( transformBundleIdentity(inputName, initialMainAttributes, finalMainAttributes) ) {
-			addReplacement();
+			addReplacement(state);
 		}
 
 		Map<String, Attributes> initialEntries = initialManifest.getEntries();
@@ -168,7 +174,7 @@ public class ManifestActionImpl extends ActionImpl {
 			Attributes finalAttributes = new Attributes( initialEntryAttributes.size() );
 			finalEntries.put(entryKey, finalAttributes);
 
-			addReplacements( transformPackages(inputName, entryKey, initialEntryAttributes, finalAttributes) );
+			addReplacements( state, transformPackages(inputName, entryKey, initialEntryAttributes, finalAttributes) );
 		}
 	}
 

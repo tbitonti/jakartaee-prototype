@@ -35,6 +35,7 @@ import java.util.Set;
 
 import org.eclipse.transformer.TransformException;
 import org.eclipse.transformer.TransformProperties;
+import org.eclipse.transformer.TransformerState;
 import org.eclipse.transformer.action.impl.ClassActionImpl;
 import org.eclipse.transformer.action.impl.ClassChangesImpl;
 import org.eclipse.transformer.action.impl.JarActionImpl;
@@ -277,6 +278,7 @@ public class TestTransformClass extends CaptureTest {
 
 		return new TransformClassLoader(
 			getClass().getClassLoader(),
+			createTransformerState(),
 			jarAction, classAction, configAction );
 	}
 
@@ -287,6 +289,7 @@ public class TestTransformClass extends CaptureTest {
 
 		return new TransformClassLoader(
 			getClass().getClassLoader(),
+			createTransformerState(),
 			jarAction, classAction, configAction );
 	}
 
@@ -370,6 +373,7 @@ public class TestTransformClass extends CaptureTest {
 		Map<String, String> packagePrefixes = getToJakartaPrefixes();
 		display(packagePrefixes);
 
+		TransformerState state = createTransformerState();
 		ClassActionImpl classAction = createToJakartaClassAction(); // throws IOException
 
 		String resourceName = TEST_DATA_RESOURCE_NAME + '/' + simpleClassName;
@@ -385,8 +389,8 @@ public class TestTransformClass extends CaptureTest {
 
 		display("Transforming class [ %s ]", resourceName);
 		ByteArrayInputStream internalInputStream = new ByteArrayInputStream(inputBytes);
-		InputStreamData outputStreamData = classAction.apply(resourceName, internalInputStream); // throws TransformException
-		display( classAction.getLastActiveChanges() );
+		InputStreamData outputStreamData = classAction.apply(state, resourceName, internalInputStream); // throws TransformException
+		display( classAction.getLastActiveChanges(state) );
 
 		ByteArrayOutputStream capturedOutput = new ByteArrayOutputStream();
 		FileUtils.transfer(outputStreamData.stream, capturedOutput); // throws IOException
@@ -664,17 +668,20 @@ public class TestTransformClass extends CaptureTest {
 	public void testDirectStrings() throws TransformException, IOException {
 		consumeCapturedEvents();
 
+		TransformerState state = createTransformerState();
 		ClassActionImpl classAction = createDirectClassAction();
 
 		String resourceName = TEST_DATA_RESOURCE_NAME + '/' + DIRECT_STRINGS_RESOURCE_NAME;
 		InputStream inputStream = getResourceStream(resourceName); // throws IOException
 
-		@SuppressWarnings("unused")
-		InputStreamData outputStreamData = classAction.apply(resourceName, inputStream); // throws TransformException
-		display( classAction.getLastActiveChanges() );
+		@SuppressWarnings("unused")	
+		InputStreamData outputStreamData = classAction.apply(state, resourceName, inputStream);
+		// throws TransformException
+
+		display( classAction.getLastActiveChanges(state) );
 
 		int expectedChanges = 5;
-		int actualChanges = classAction.getLastActiveChanges().getModifiedConstants();
+		int actualChanges = classAction.getLastActiveChanges(state).getModifiedConstants();
 		Assertions.assertEquals(
 			expectedChanges, actualChanges,
 			"Incorrect count of constant changes");

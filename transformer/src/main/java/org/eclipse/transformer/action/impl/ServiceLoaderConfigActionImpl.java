@@ -23,6 +23,7 @@ import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 
 import org.eclipse.transformer.TransformException;
+import org.eclipse.transformer.TransformerState;
 import org.eclipse.transformer.action.ActionType;
 import org.eclipse.transformer.util.ByteData;
 import org.slf4j.Logger;
@@ -73,21 +74,21 @@ public class ServiceLoaderConfigActionImpl extends ActionImpl {
 	}
 
 	@Override
-	public ServiceLoaderConfigChangesImpl getLastActiveChanges() {
-		return (ServiceLoaderConfigChangesImpl) super.getLastActiveChanges();
+	public ServiceLoaderConfigChangesImpl getLastActiveChanges(TransformerState state) {
+		return (ServiceLoaderConfigChangesImpl) super.getLastActiveChanges(state);
 	}
 
 	@Override
-	public ServiceLoaderConfigChangesImpl getActiveChanges() {
-		return (ServiceLoaderConfigChangesImpl) super.getActiveChanges();
+	public ServiceLoaderConfigChangesImpl getActiveChanges(TransformerState state) {
+		return (ServiceLoaderConfigChangesImpl) super.getActiveChanges(state);
 	}
 
-	protected void addUnchangedProvider() {
-		getActiveChanges().addUnchangedProvider();
+	protected void addUnchangedProvider(TransformerState state) {
+		getActiveChanges(state).addUnchangedProvider();
 	}
 
-	protected void addChangedProvider() {
-		getActiveChanges().addChangedProvider();
+	protected void addChangedProvider(TransformerState state) {
+		getActiveChanges(state).addChangedProvider();
 	}
 
 	//
@@ -105,7 +106,9 @@ public class ServiceLoaderConfigActionImpl extends ActionImpl {
 	//
 
 	@Override
-	public ByteData apply(String inputName, byte[] inputBytes, int inputLength) 
+	public ByteData apply(
+		TransformerState state,
+		String inputName, byte[] inputBytes, int inputLength) 
 		throws TransformException {
 
 		String outputName = renameInput(inputName);
@@ -114,7 +117,7 @@ public class ServiceLoaderConfigActionImpl extends ActionImpl {
 		} else {
 			verbose("Service name  [ {} ] -> [ {} ]", inputName, outputName);
 		}
-		setResourceNames(inputName, outputName);
+		setResourceNames(state, inputName, outputName);
 
 		InputStream inputStream = new ByteArrayInputStream(inputBytes);
 		InputStreamReader inputReader;
@@ -139,7 +142,7 @@ public class ServiceLoaderConfigActionImpl extends ActionImpl {
 		BufferedWriter writer = new BufferedWriter(outputWriter);
 
 		try {
-			transform(reader, writer); // throws IOException
+			transform(state, reader, writer); // throws IOException
 		} catch ( IOException e ) {
 			error("Failed to transform [ {} ]", e, inputName);
 			return null;
@@ -152,7 +155,7 @@ public class ServiceLoaderConfigActionImpl extends ActionImpl {
 			return null;
 		}
 
-		if ( !hasNonResourceNameChanges() ) {
+		if ( !hasNonResourceNameChanges(state) ) {
 			return null;
 		}
 
@@ -160,7 +163,9 @@ public class ServiceLoaderConfigActionImpl extends ActionImpl {
 		return new ByteData(inputName, outputBytes, 0, outputBytes.length);
 	}
 
-	protected void transform(BufferedReader reader, BufferedWriter writer)
+	protected void transform(
+		TransformerState state,
+		BufferedReader reader, BufferedWriter writer)
 		throws IOException {
 
 		String inputLine;
@@ -220,7 +225,7 @@ public class ServiceLoaderConfigActionImpl extends ActionImpl {
 			if ( outputPackageName == null ) {
 				// For one of the reasons, above, no rename was performed on the line.
 				outputLine = inputLine;
-				addUnchangedProvider();
+				addUnchangedProvider(state);
 
 			} else {
 				// Not most efficient, but good enough:
@@ -239,7 +244,7 @@ public class ServiceLoaderConfigActionImpl extends ActionImpl {
 					outputPackageName +
 					inputLine.substring(inputPackageEnd);
 
-				addChangedProvider();
+				addChangedProvider(state);
 			}
 
 			writer.write(outputLine); // throws IOException

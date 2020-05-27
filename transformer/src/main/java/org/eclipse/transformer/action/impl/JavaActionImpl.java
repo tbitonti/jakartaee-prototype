@@ -23,6 +23,7 @@ import java.io.UnsupportedEncodingException;
 import java.util.Map;
 
 import org.eclipse.transformer.TransformException;
+import org.eclipse.transformer.TransformerState;
 import org.eclipse.transformer.action.ActionType;
 import org.eclipse.transformer.util.ByteData;
 import org.slf4j.Logger;
@@ -128,7 +129,9 @@ public class JavaActionImpl extends ActionImpl {
     }
 
 	@Override
-	public ByteData apply(String inputName, byte[] inputBytes, int inputLength) 
+	public ByteData apply(
+		TransformerState state,
+		String inputName, byte[] inputBytes, int inputLength) 
 		throws TransformException {
 
 		String outputName = null; 
@@ -139,7 +142,7 @@ public class JavaActionImpl extends ActionImpl {
 		//     info("Input class name  [ {} ]", inputName);
 		//     info("Output class name [ {} ]", outputName);
 		// }
-		setResourceNames(inputName, outputName);
+		setResourceNames(state, inputName, outputName);
 
 		InputStream inputStream = new ByteArrayInputStream(inputBytes, 0, inputLength);
 		InputStreamReader inputReader;
@@ -164,7 +167,7 @@ public class JavaActionImpl extends ActionImpl {
 		BufferedWriter writer = new BufferedWriter(outputWriter);
 
 		try {
-			transform(reader, writer); // throws IOException
+			transform(state, reader, writer); // throws IOException
 		} catch ( IOException e ) {
 			error("Failed to transform [ {} ]", e, inputName);
 			return null;
@@ -177,7 +180,7 @@ public class JavaActionImpl extends ActionImpl {
 			return null;
 		}
 
-		if ( !hasNonResourceNameChanges() ) {
+		if ( !hasNonResourceNameChanges(state) ) {
 			return null;
 		}
 
@@ -185,7 +188,7 @@ public class JavaActionImpl extends ActionImpl {
 		return new ByteData(inputName, outputBytes, 0, outputBytes.length);
 	}
 
-	protected void transform(BufferedReader reader, BufferedWriter writer)
+	protected void transform(TransformerState state, BufferedReader reader, BufferedWriter writer)
 		throws IOException {
 
 		String inputLine;
@@ -194,7 +197,7 @@ public class JavaActionImpl extends ActionImpl {
 			if ( outputLine == null ) {
 				outputLine = inputLine;
 			} else {
-				addReplacement();
+				addReplacement(state);
 			}
 			writer.write(outputLine);
 			writer.write('\n');

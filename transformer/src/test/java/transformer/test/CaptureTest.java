@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.eclipse.transformer.TransformerState;
 import org.eclipse.transformer.action.BundleData;
 import org.eclipse.transformer.action.impl.InputBufferImpl;
 import org.eclipse.transformer.action.impl.SelectionRuleImpl;
@@ -77,5 +78,11 @@ public class CaptureTest {
 			bundleData,
 			null,
 			directStrings );
+	}
+	
+	//
+
+	protected TransformerState createTransformerState() {
+		return new TransformerState( getCaptureLogger(), false, false);
 	}
 }

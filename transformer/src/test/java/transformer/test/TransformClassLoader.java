@@ -22,6 +22,7 @@ import java.util.Enumeration;
 import java.util.Vector;
 
 import org.eclipse.transformer.TransformException;
+import org.eclipse.transformer.TransformerState;
 import org.eclipse.transformer.action.impl.ClassActionImpl;
 import org.eclipse.transformer.action.impl.JarActionImpl;
 import org.eclipse.transformer.action.impl.ServiceLoaderConfigActionImpl;
@@ -33,13 +34,26 @@ public class TransformClassLoader extends ClassLoader {
 
 	public TransformClassLoader(
 		ClassLoader parent,
-		JarActionImpl jarAction, ClassActionImpl classAction, ServiceLoaderConfigActionImpl configAction) {
+		TransformerState state,
+		JarActionImpl jarAction,
+		ClassActionImpl classAction,
+		ServiceLoaderConfigActionImpl configAction) {
 
 		super(parent);
+
+		this.state = state;
 
 		this.jarAction = jarAction;
 		this.classAction = classAction;
 		this.serviceConfigAction = configAction;
+	}
+
+	//
+	
+	private final TransformerState state;
+
+	public TransformerState getTransformerState() {
+		return state;
 	}
 
 	//
@@ -73,7 +87,7 @@ public class TransformClassLoader extends ClassLoader {
 	public InputStream applyClass(String resourceName, InputStream inputStream)
 		throws TransformException {
 
-		InputStreamData outputData = getClassAction().apply(resourceName, inputStream);
+		InputStreamData outputData = getClassAction().apply( getTransformerState(), resourceName, inputStream);
 		 // 'apply' throws JakartaTransformException
 
 		return outputData.stream;
@@ -94,7 +108,7 @@ public class TransformClassLoader extends ClassLoader {
 	public InputStream applyServiceConfig(String resourceName, InputStream inputStream)
 		throws TransformException {
 
-		InputStreamData outputData = getServiceConfigAction().apply(resourceName, inputStream);
+		InputStreamData outputData = getServiceConfigAction().apply( getTransformerState(), resourceName, inputStream );
 		// 'apply' throws JakartaTransformException
 
 		return outputData.stream;
