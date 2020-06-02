@@ -21,7 +21,8 @@ public enum ActionType {
    	ZIP, JAR, WAR, RAR, EAR,
 	JAVA,
         DIRECTORY,
-        PROPERTIES;
+        PROPERTIES,
+        TLD;
 
 	public boolean matches(String tag) {
 		return name().toLowerCase().startsWith(tag);
