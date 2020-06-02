@@ -26,7 +26,7 @@ public class RarActionImpl extends ContainerActionImpl {
 	//
 
 	public String getName() {
-		return "RAR Action";
+		return "RAR";
 	}
 
 	@Override

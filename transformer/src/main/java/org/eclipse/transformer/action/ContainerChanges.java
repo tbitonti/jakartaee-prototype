@@ -11,12 +11,21 @@
 
 package org.eclipse.transformer.action;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.eclipse.transformer.TransformerState;
-
 public interface ContainerChanges extends Changes {
+	Set<String> getContainerActionNames();	
+	Set<String> getNullActionNames();	
+	Set<String> getNormalActionNames();
+
+	Set<String> getActionNames();
+
+	List<String> sortActionNames(Set<String> actionNames);
+
+	//
+
 	int getAllResources();
 
 	int getAllUnselected();
@@ -27,8 +36,6 @@ public interface ContainerChanges extends Changes {
 
 	Map<String, int[]> getChangedByAction();
 	Map<String, int[]> getUnchangedByAction();
-
-	Set<String> getActionNames();
 
 	int getChanged(Action action);
 	int getChanged(String name);

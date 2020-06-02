@@ -29,6 +29,20 @@ public interface Action {
 	 */
 	String getName();
 
+	/**
+	 * Tell if this action is a null action.
+	 *
+	 * @return True or false, telling if this action is a null action.
+	 */
+	boolean isNull();
+
+	/**
+	 * Tell if this action is a container action.
+	 *
+	 * @return True or false, telling if this action is a container action.
+	 */
+	boolean isContainer();
+
 	//
 
 	/**

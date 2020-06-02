@@ -27,7 +27,7 @@ public class JarActionImpl extends ZipActionImpl {
 	//
 
 	public String getName() {
-		return "Jar Action";
+		return "JAR";
 	}
 
 	@Override

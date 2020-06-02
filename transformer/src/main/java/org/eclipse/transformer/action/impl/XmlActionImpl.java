@@ -51,7 +51,7 @@ public class XmlActionImpl extends ActionImpl {
 
 	@Override
 	public String getName() {
-		return "XML Action";
+		return "XML";
 	}
 
 	@Override

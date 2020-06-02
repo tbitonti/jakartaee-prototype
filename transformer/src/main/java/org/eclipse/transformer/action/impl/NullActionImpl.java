@@ -33,12 +33,17 @@ public class NullActionImpl extends ActionImpl {
 	//
 
 	public String getName() {
-		return "Null Action";
+		return "Null";
 	}
 
 	@Override
 	public ActionType getActionType() {
 		return ActionType.NULL;
+	}
+
+	@Override
+	public boolean isNull() {
+		return true;
 	}
 
 	//

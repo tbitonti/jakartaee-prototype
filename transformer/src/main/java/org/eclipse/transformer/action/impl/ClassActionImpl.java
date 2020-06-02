@@ -220,7 +220,7 @@ public class ClassActionImpl extends ActionImpl {
 	//
 
 	public String getName() {
-		return "Class Action";
+		return "Class";
 	}
 
 	@Override

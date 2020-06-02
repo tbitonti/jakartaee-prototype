@@ -26,7 +26,7 @@ public class EarActionImpl extends ContainerActionImpl {
 	//
 
 	public String getName() {
-		return "EAR Action";
+		return "EAR";
 	}
 
 	@Override

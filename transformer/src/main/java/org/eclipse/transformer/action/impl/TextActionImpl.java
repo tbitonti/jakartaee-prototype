@@ -42,7 +42,7 @@ public class TextActionImpl extends ActionImpl {
 
     @Override
     public String getName() {
-        return "Text Action";
+        return "Text";
     }
 
     @Override

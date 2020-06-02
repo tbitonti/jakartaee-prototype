@@ -37,7 +37,7 @@ public class DirectoryActionImpl extends ContainerActionImpl {
 
 	@Override
 	public String getName() {
-		return "Directory Action";
+		return "Directory";
 	}
 
 	//
@@ -58,24 +58,23 @@ public class DirectoryActionImpl extends ContainerActionImpl {
     @Override
 	public void apply(
 		TransformerState state,
-		String inputPath, File inputFile, File outputFile)
+		String rootPath, File inputFile, File outputFile)
 		throws TransformException {
 
-    	startRecording(state, inputPath);
+    	startRecording(state, rootPath);
     	try {
-    		setResourceNames(state, inputPath, inputPath);
-    		transform(state, ".", inputFile, outputFile);
+    		setResourceNames(state, rootPath, rootPath);
+    		transform(state, null, inputFile, outputFile);
+
     	} finally {
-    		stopRecording(state, inputPath);
+    		stopRecording(state, rootPath);
     	}
 	}
 
 	protected void transform(
 		TransformerState state,
-		String inputPath, File inputFile,
+		String pathFromRoot, File inputFile,
 		File outputFile)  throws TransformException {
-
-	    inputPath = inputPath + '/' + inputFile.getName();
 
 	    // Note the asymmetry between the handling of the root directory, 
 	    // which is selected by a composite action, and the handling of sub-directories,
@@ -87,6 +86,10 @@ public class DirectoryActionImpl extends ContainerActionImpl {
 	    // The alternative would be to put the directory action as a child of itself,
 	    // and have sub-directories be accepted using composite action selection.
 
+		String inputName = inputFile.getName();
+
+		// info("DirectoryActionImpl.transform pathFromRoot {} inputName {}", pathFromRoot, inputName);
+
 	    if ( inputFile.isDirectory() ) {
 	    	if ( !outputFile.exists() ) {
 	    		outputFile.mkdir();
@@ -94,18 +97,29 @@ public class DirectoryActionImpl extends ContainerActionImpl {
 
 	    	for ( File childInputFile : inputFile.listFiles() ) {
 	    		File childOutputFile = new File( outputFile, childInputFile.getName() );
-	    		transform(state, inputPath, childInputFile, childOutputFile);
+	    		String childName = childInputFile.getName();
+
+	    		String childPath;
+				if ( pathFromRoot == null ) {
+					childPath = childName;
+				} else {
+					childPath = pathFromRoot + '/' + childName;
+				}
+
+				// info("DirectoryActionImpl.transform childPath {}", childPath);
+
+	    		transform(state, childPath, childInputFile, childOutputFile);
 	    	}
 
 	    } else {
-	    	ActionImpl selectedAction = acceptAction(inputPath, inputFile);
+	    	ActionImpl selectedAction = acceptAction(pathFromRoot, inputFile);
 	    	if ( selectedAction == null ) {
-	    		recordUnaccepted(state, inputPath);
-	    	} else if ( !select(inputPath) ) {
-	    		recordUnselected(state, selectedAction, inputPath);
+	    		recordUnaccepted(state, pathFromRoot);
+	    	} else if ( !select(pathFromRoot) ) {
+	    		recordUnselected(state, selectedAction, pathFromRoot);
 	    	} else {
-	    		selectedAction.apply(state, inputPath, inputFile, outputFile);
-	    		recordTransform(state, selectedAction, inputPath);
+	    		selectedAction.apply(state, pathFromRoot, inputFile, outputFile);
+	    		recordTransform(state, selectedAction, pathFromRoot);
 	    	}
 	    }
 	}

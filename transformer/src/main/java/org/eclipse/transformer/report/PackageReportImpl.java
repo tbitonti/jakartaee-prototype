@@ -9,7 +9,7 @@
  * SPDX-License-Identifier: (EPL-2.0 OR Apache-2.0)
  ********************************************************************************/
 
-package org.eclipse.transformer.report.impl;
+package org.eclipse.transformer.report;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -19,9 +19,9 @@ import org.eclipse.transformer.action.Changes;
 import org.eclipse.transformer.TransformException;
 import org.slf4j.Logger;
 
-public class PackageReport extends TransformReportImpl {
+public class PackageReportImpl extends TransformReportImpl {
 
-	public PackageReport(Logger logger, boolean isTerse, boolean isVerbose) {
+	public PackageReportImpl(Logger logger, boolean isTerse, boolean isVerbose) {
 		super(logger, isTerse, isVerbose);
 	}
 
@@ -52,18 +52,18 @@ public class PackageReport extends TransformReportImpl {
 	//
 
 	@Override
-	public void begin(Action action, String inputName) {
-		super.begin(action, inputName);
+	public void begin(Action action, String initialName) {
+		super.begin(action, initialName);
 	}
 
 	@Override
-	public void processInitialData(Object data) {
-		super.processInitialData(data);
+	public void processInitialData(Object initialData) {
+		super.processInitialData(initialData);
 	}
 
 	@Override
-	public void processFinalData(Object data) {
-		super.processFinalData(data);
+	public Object processFinalData(Object finalData) {
+		return super.processFinalData(finalData);
 	}
 
 	@Override

@@ -58,6 +58,18 @@ public abstract class ActionImpl implements Action {
 
 	//
 
+	@Override
+	public boolean isNull() {
+		return false;
+	}
+
+	@Override
+	public boolean isContainer() {
+		return false;
+	}
+
+	//
+
 	public static interface ActionInit<A extends ActionImpl> {
 		A apply(
 			Logger logger, boolean isTerse, boolean isVerbose,

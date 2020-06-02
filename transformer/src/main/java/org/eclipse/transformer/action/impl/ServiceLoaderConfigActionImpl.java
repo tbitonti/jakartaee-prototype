@@ -58,7 +58,7 @@ public class ServiceLoaderConfigActionImpl extends ActionImpl {
 	//
 
 	public String getName() {
-		return "Service Config Action";
+		return "ServiceLoaderConfig";
 	}
 
 	@Override

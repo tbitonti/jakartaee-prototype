@@ -12,9 +12,12 @@
 package org.eclipse.transformer.action.impl;
 
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -27,6 +30,10 @@ public class ContainerChangesImpl extends ChangesImpl implements ContainerChange
 
 	protected ContainerChangesImpl() {
 		super();
+
+		this.containerActionNames = new HashSet<String>();
+		this.normalActionNames = new HashSet<String>();
+		this.nullActionNames = new HashSet<String>();
 
 		this.changedByAction = new HashMap<String, int[]>();
 		this.unchangedByAction = new HashMap<String, int[]>();
@@ -67,6 +74,52 @@ public class ContainerChangesImpl extends ChangesImpl implements ContainerChange
 
 	//
 
+	private static final int CMP_LT = -1;
+	private static final int CMP_GT = +1;
+
+	// Comparator for action names;
+	//
+	// Put containers first.  Put null actions last.
+	// Put everything else in the middle.
+
+	private final Comparator<String> ACTION_COMPARATOR = new Comparator<String>() {
+		@Override
+		public int compare(String actionName1, String actionName2) {
+			boolean isNull1 = nullActionNames.contains(actionName1);
+			boolean isNull2 = nullActionNames.contains(actionName2);
+			
+			if ( isNull1 ) {
+				if ( !isNull2 ) {
+					return CMP_GT; // Null always greater than non-null 
+				}
+			} else if ( isNull2 ) {
+				return CMP_LT; // Non-null always less than null 
+			}
+
+			boolean isContainer1 = containerActionNames.contains(actionName1);
+			boolean isContainer2 = containerActionNames.contains(actionName2);
+
+			if ( isContainer1 ) {
+				if ( !isContainer2 ) {
+					return CMP_LT; // Container always less than non-container
+				}
+			} else if ( isContainer2 ) {
+				return CMP_GT; // Non-container always greater than container 
+			}
+
+			// If in the same category (container, null, normal),
+			// compare using usual string comparison.
+
+			return ( actionName1.compareTo(actionName2) );
+		}
+	};
+
+	//
+
+	private final Set<String> containerActionNames;
+	private final Set<String> normalActionNames;
+	private final Set<String> nullActionNames;
+
 	private final Map<String, int[]> changedByAction;
 	private final Map<String, int[]> unchangedByAction;
 
@@ -76,6 +129,30 @@ public class ContainerChangesImpl extends ChangesImpl implements ContainerChange
 	private int allSelected;
 	private int allUnselected;	
 	private int allResources;
+
+	//
+	
+	@Override
+	public Set<String> getContainerActionNames() {
+		return containerActionNames;
+	}
+
+	@Override
+	public Set<String> getNullActionNames() {
+		return nullActionNames;
+	}
+
+	@Override
+	public Set<String> getNormalActionNames() {
+		return normalActionNames;
+	}
+
+	@Override
+	public List<String> sortActionNames(Set<String> actionNames) {
+		List<String> sortedActionNames = new ArrayList<String>(actionNames);
+		sortedActionNames.sort(ACTION_COMPARATOR);
+		return sortedActionNames;
+	}
 
 	//
 
@@ -159,15 +236,33 @@ public class ContainerChangesImpl extends ChangesImpl implements ContainerChange
 
 	protected void record(TransformerState state, ActionImpl action) {
 		ChangesImpl changes = action.getLastActiveChanges(state);
-		record( action.getName(), changes.hasChanges() );
+		
+		record(
+			action.getName(), action.isContainer(), action.isNull(),
+			changes.hasChanges() );
+
 		changes.addNestedInto(this);
 	}
 
 	protected void record(Action action, boolean hasChanges) {
-		record( action.getName(), hasChanges );
+		record(
+			action.getName(), action.isContainer(), action.isNull(),
+			hasChanges );
 	}
 
-	protected void record(String name, boolean hasChanges) {
+	protected void record(
+		String actionName,
+		boolean isContainer, boolean isNull,
+		boolean hasChanges) {
+
+		if ( isContainer) {
+			containerActionNames.add(actionName);
+		} else if ( isNull ) {
+			nullActionNames.add(actionName);
+		} else {
+			normalActionNames.add(actionName);
+		}
+
 		allResources++;
 		allSelected++;
 
@@ -180,10 +275,10 @@ public class ContainerChangesImpl extends ChangesImpl implements ContainerChange
 			target = unchangedByAction;
 		}
 
-		int[] changes = target.get(name);
+		int[] changes = target.get(actionName);
 		if ( changes == null ) {
 			changes = new int[] { 1 };
-			target.put(name, changes);
+			target.put(actionName, changes);
 		} else {
 			changes[0]++;
 		}
@@ -288,7 +383,7 @@ public class ContainerChangesImpl extends ChangesImpl implements ContainerChange
 			"Changed", getAllChanged(),
 			"\n" ) );
 
-		for ( String actionName : getActionNames() ) {
+		for ( String actionName : sortActionNames( getActionNames() ) ) {
 			int useUnchangedByAction = getUnchanged(actionName); 
 			int useChangedByAction = getChanged(actionName);
 			stream.print( formatData(
@@ -313,7 +408,7 @@ public class ContainerChangesImpl extends ChangesImpl implements ContainerChange
 			"Changed", getAllChanged(),
 			"" ) );
 
-		for ( String actionName : getActionNames() ) {
+		for ( String actionName : sortActionNames( getActionNames() ) ) {
 			int useUnchangedByAction = getUnchanged(actionName); 
 			int useChangedByAction = getChanged(actionName);
 			logger.info( formatData(

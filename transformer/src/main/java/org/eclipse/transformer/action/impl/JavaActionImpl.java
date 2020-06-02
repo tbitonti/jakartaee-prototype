@@ -42,7 +42,7 @@ public class JavaActionImpl extends ActionImpl {
 
 	@Override
 	public String getName() {
-		return ( "Java Action" );
+		return ( "Java" );
 	}
 
 	@Override

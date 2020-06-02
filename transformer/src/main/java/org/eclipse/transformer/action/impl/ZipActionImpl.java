@@ -27,7 +27,7 @@ public class ZipActionImpl extends ContainerActionImpl {
 	//
 
 	public String getName() {
-		return "Zip Action";
+		return "ZIP";
 	}
 
 	@Override

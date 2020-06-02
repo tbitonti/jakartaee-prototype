@@ -50,6 +50,13 @@ public abstract class ContainerActionImpl extends ActionImpl implements Containe
 
 	//
 
+	@Override
+	public boolean isContainer() {
+		return true;
+	}
+
+	//
+
 	private final CompositeActionImpl compositeAction;
 
 	@Override

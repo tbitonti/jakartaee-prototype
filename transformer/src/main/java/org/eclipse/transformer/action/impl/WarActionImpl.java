@@ -26,7 +26,7 @@ public class WarActionImpl extends ContainerActionImpl {
 	//
 
 	public String getName() {
-		return "WAR Action";
+		return "WAR";
 	}
 
 	@Override

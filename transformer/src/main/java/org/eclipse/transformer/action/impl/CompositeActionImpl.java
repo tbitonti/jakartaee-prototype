@@ -51,6 +51,11 @@ public class CompositeActionImpl extends ActionImpl implements CompositeAction {
 	}
 
 	@Override
+	public boolean isContainer() {
+		return ( (acceptedAction == null) ? false : acceptedAction.isContainer() );
+	}
+
+	@Override
 	public ActionType getActionType() {
 		return ( (acceptedAction == null) ? null : acceptedAction.getActionType() );
 	}

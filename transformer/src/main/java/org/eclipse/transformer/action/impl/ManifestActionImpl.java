@@ -74,7 +74,7 @@ public class ManifestActionImpl extends ActionImpl {
 	//
 
 	public String getName() {
-		return ( getIsManifest() ? "Manifest Action" : "Feature Action" );
+		return ( getIsManifest() ? "Manifest" : "Feature" );
 	}
 
 	@Override

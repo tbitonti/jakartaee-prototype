@@ -59,9 +59,9 @@ import org.eclipse.transformer.action.impl.TextActionImpl;
 import org.eclipse.transformer.action.impl.WarActionImpl;
 // import org.eclipse.transformer.action.impl.XmlActionImpl;
 import org.eclipse.transformer.action.impl.ZipActionImpl;
+import org.eclipse.transformer.report.ListReportImpl;
+import org.eclipse.transformer.report.PackageReportImpl;
 import org.eclipse.transformer.report.TransformReport;
-import org.eclipse.transformer.report.impl.ListReport;
-import org.eclipse.transformer.report.impl.PackageReport;
 import org.eclipse.transformer.util.FileUtils;
 
 import aQute.lib.io.IO;
@@ -264,11 +264,11 @@ public class Transformer {
 
 			switch ( this ) {
 				case LIST_REPORT:
-					report = new ListReport(logger, isTerse, isVerbose);
+					report = new ListReportImpl(logger, isTerse, isVerbose);
 					break;
 				
 				case PACKAGE_REPORT:
-					report = new PackageReport(logger, isTerse, isVerbose);
+					report = new PackageReportImpl(logger, isTerse, isVerbose);
 					break;
 
 				default:
@@ -682,12 +682,21 @@ public class Transformer {
             }
 
             helpWriter.println();
-            helpWriter.println("Logging Properties:");
+            helpWriter.println("Logging properties:");
             for ( TransformerLoggerFactory.LoggerProperty loggerProperty :
                   TransformerLoggerFactory.LoggerProperty.values() ) {
                 helpWriter.println("  [ " + loggerProperty.getPropertyName() + " ]");
             }
 
+            helpWriter.println();
+            helpWriter.println("Logging levels:");
+            helpWriter.println("  trace");
+            helpWriter.println("  debug");
+            helpWriter.println("  info");
+            helpWriter.println("  error");
+            helpWriter.println("  off");
+            helpWriter.println("Note: Options 'terse' and 'verbose' adjust 'info' logging.");
+            
             helpWriter.println();
             helpWriter.println("Report types:");
             for ( ReportType reportType : ReportType.values() ) {
