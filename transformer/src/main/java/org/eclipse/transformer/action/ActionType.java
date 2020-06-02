@@ -18,10 +18,10 @@ public enum ActionType {
 	MANIFEST, FEATURE,
 	SERVICE_LOADER_CONFIG,
 	XML,
-
-	ZIP, JAR, WAR, RAR, EAR,
+   	ZIP, JAR, WAR, RAR, EAR,
 	JAVA,
-	DIRECTORY;
+        DIRECTORY,
+        PROPERTIES;
 
 	public boolean matches(String tag) {
 		return name().toLowerCase().startsWith(tag);
